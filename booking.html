@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book a Printer | ATC FabLab</title>
+    <style>
+        body { margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5; display: flex; justify-content: center; padding: 20px; }
+        .container { background: white; max-width: 600px; width: 100%; border-radius: 25px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); box-sizing: border-box; text-align: center; }
+        .back-nav { text-align: left; margin-bottom: 20px; }
+        .back-nav a { text-decoration: none; color: #888; font-size: 0.9rem; font-weight: 500; cursor: pointer; }
+        h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: 30px; }
+        .rules-card { background-color: #fffbeb; border: 2px solid #fcd34d; border-radius: 12px; padding: 25px; margin-bottom: 30px; text-align: left; }
+        .rules-card h2 { margin-top: 0; font-size: 1.1rem; color: #92400e; font-weight: 800; }
+        .rules-card ul { padding-left: 18px; margin: 0; color: #92400e; font-size: 0.85rem; line-height: 1.5; }
+        .rules-card li { margin-bottom: 12px; }
+        input[type="date"], .text-input { width: 100%; padding: 15px; border-radius: 12px; border: 1px solid #e5e7eb; box-sizing: border-box; margin-bottom: 15px; font-size: 1rem; font-family: inherit; }
+        .slot-header { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; margin-bottom: 10px; }
+        .slot-label { font-size: 0.75rem; font-weight: 800; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; }
+        .clear-all { font-size: 0.75rem; font-weight: 700; color: #374151; background: #f3f4f6; border: none; padding: 4px 12px; border-radius: 20px; cursor: pointer; }
+        .lockout-notice { color: #ef4444; font-size: 0.7rem; margin-top: -5px; margin-bottom: 15px; text-align: left; }
+        .time-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .time-slot { position: relative; padding: 18px 5px; border: 1px solid #e5e7eb; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 0.8rem; text-align: center; transition: 0.1s; background: #fff; display: flex; align-items: center; justify-content: center; }
+        .time-slot.selected { background: #000 !important; color: #fff !important; border-color: #000 !important; }
+        .time-slot.locked { opacity: 0.3; pointer-events: none; background: #f9fafb; cursor: not-allowed; }
+        .clay-badge { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); background: #f59e0b; color: white; font-size: 0.6rem; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; white-space: nowrap; z-index: 10; }
+        .primary-btn { background: #000; color: white; border: none; width: 100%; padding: 18px; border-radius: 35px; font-weight: 800; font-size: 1rem; cursor: pointer; margin-top: 20px; }
+        .secondary-btn { background: #fff; color: #888; border: 1px solid #e5e7eb; width: 100%; padding: 12px; border-radius: 35px; font-weight: 500; font-size: 0.85rem; cursor: pointer; margin-top: 15px; }
+        .booking-item { border: 1px solid #eee; padding: 15px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; text-align: left; }
+        .cancel-btn { background: #fee2e2; color: #b91c1c; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 700; font-size: 0.75rem; cursor: pointer; }
+        #form-container, #manage-view, #results-container { display: none; }
+        @media (max-width: 480px) { .time-grid { grid-template-columns: repeat(2, 1fr); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="booking-view">
+            <div class="back-nav"><a href="index.html">← Back to Selection</a></div>
+            <h1 id="printer-title">Reserve Printer</h1>
+            <div class="rules-card">
+                <h2>Read Before Booking</h2>
+                <ul id="rules-list"></ul>
+            </div>
+            <input type="date" id="date-picker">
+            <div id="slot-container" style="display:none;">
+                <div class="slot-header"><span class="slot-label">Available Slots</span><button class="clear-all" onclick="clearAll()">Clear All</button></div>
+                <div class="lockout-notice">* Same-day bookings must be made at least 1 hour in advance.</div>
+                <div id="time-grid" class="time-grid"></div>
+            </div>
+            <div id="form-container">
+                <input type="text" id="user-name" class="text-input" placeholder="Full Name">
+                <input type="email" id="user-email" class="text-input" placeholder="uark-email@uark.edu">
+                <div id="scara-extra" style="display:none;"><input type="text" id="group-members" class="text-input" placeholder="Other Group Members"></div>
+                <button class="primary-btn" id="submit-btn" onclick="handleConfirm()">Complete Reservation</button>
+            </div>
+            <button class="secondary-btn" onclick="toggleView('manage')">Manage / Cancel Existing Booking</button>
+        </div>
+        <div id="manage-view">
+            <div class="back-nav"><a onclick="toggleView('booking')">← Back to Booking</a></div>
+            <h1>Your Bookings</h1>
+            <input type="text" id="lookup-name" class="text-input" placeholder="Full Name">
+            <input type="email" id="lookup-email" class="text-input" placeholder="uark-email@uark.edu">
+            <button class="primary-btn" id="lookup-btn" onclick="lookupBookings()">Find My Bookings</button>
+            <div id="results-container" style="margin-top: 30px;"><div id="results-list"></div></div>
+        </div>
+    </div>
+
+    <script>
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyfSrApD_2RteAukPLiwol_yfmbKbu3CP6G2utkR5A0rNa41lKzZog6vq2VOtiMT57nqA/exec"; 
+        const params = new URLSearchParams(window.location.search);
+        const printer = params.get('printer') || "Super7";
+        let selectedIndices = [];
+
+        const super7Times = ["09:00 AM - 10:00 AM", "10:00 AM - 10:30 AM", "10:30 AM - 11:00 AM", "11:00 AM - 11:30 AM", "11:30 AM - 12:00 PM", "01:00 PM - 01:30 PM", "01:30 PM - 02:00 PM", "02:00 PM - 02:30 PM", "03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
+        const scaraTimes = ["09:00 AM - 11:00 AM", "10:00 AM - 12:00 PM", "01:00 PM - 03:00 PM", "02:00 PM - 04:00 PM"];
+
+        const rules = {
+            "Super7": [
+                "<strong>Clay Preparation is required every Monday from 9:00 - 10:00 AM.</strong> Two students will need to sign up and load clay for the week. If this is not done, the class will not have clay to print with. These two students will also automatically receive printing time from 10:00 - 10:30 AM on that day. They are welcome to book the following 30 minute slot from 10:30 - 11:00 AM if they would like a full hour of printing between the two. This can be coordinated as a group.",
+                "<strong>Printing sessions are 30-minute increments.</strong>",
+                "<strong>Students may book 30 or 60 minutes per session.</strong>",
+                "<strong>One student max per printing time slot.</strong>",
+                "<strong>Two students max per Clay Preparation slot.</strong>",
+                "<strong>Lunch (12:00 - 1:00 PM) is not bookable.</strong>",
+                "<strong>Sign up no later than one (1) hour before you plan to print.</strong>",
+                "<strong>Use the Manage/Cancel Existing Booking button at the bottom of the page to cancel or look up your appointment(s).</strong> Cancellations must be made at least one (1) hour in advance of your booked starting time. Enter your name and email to find and cancel your booking. If cancellation falls within a shorter time frame, try to coordinate with your classmates on another group taking your scheduled spot.",
+                "<strong>All work must end at 4:30 PM to allow staff to begin shutting down the space and shop.</strong> Assist in any cleaning necessary at the end of your printing session.",
+                "<strong>If any other issues arise, contact atcfablab@gmail.com & we will help you as best we can.</strong>"
+            ],
+            "SCARA": [
+                "<strong>All time slots include BOTH your mixing/loading & your printing time.</strong> All time slots are two (2) hours long.",
+                "<strong>Tuesdays and Thursdays can be used for testing your mixes BEFORE booking an official time slot.</strong> These days do not have to be officially booked.",
+                "<strong>There are NO consecutive sessions - you only get one session per day per group.</strong> This is to allow as many groups as possible to print in a day.",
+                "<strong>When booking time, include your other group members' names.</strong>",
+                "<strong>Lunch (12:00 - 1:00 PM) is not bookable.</strong>",
+                "<strong>Sign up no later than one (1) hour before you plan to print.</strong>",
+                "<strong>Use the Manage/Cancel Existing Booking button at the bottom of the page to cancel or look up your appointment(s).</strong> Cancellations must be made at least one (1) hour in advance of your booked starting time. Enter your name and email to find and cancel your booking. If cancellation falls within a shorter time frame, try to coordinate with your classmates on another group taking your scheduled spot.",
+                "<strong>All work must end at 4:30 PM to allow staff to begin shutting down the space and shop.</strong> Assist in any cleaning necessary at the end of your printing session.",
+                "<strong>If any other issues arise, contact atcfablab@gmail.com & we will help you as best we can.</strong>"
+            ]
+        };
+
+        document.getElementById('printer-title').innerText = "Reserve " + printer;
+        rules[printer].forEach(text => {
+            const li = document.createElement('li'); li.innerHTML = text;
+            document.getElementById('rules-list').appendChild(li);
+        });
+        if (printer === "SCARA") document.getElementById('scara-extra').style.display = "block";
+
+        const dateInput = document.getElementById('date-picker');
+        dateInput.setAttribute('min', new Date().toISOString().split('T')[0]);
+        dateInput.onchange = () => renderGrid();
+
+        function isWithinLockout(dateStr, timeStr) {
+            const nowInCentral = new Date(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', hour12: false, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(new Date()));
+            const startStr = timeStr.split(' - ')[0];
+            const [time, modifier] = startStr.split(' ');
+            let [hours, minutes] = time.split(':');
+            hours = parseInt(hours);
+            if (modifier === 'PM' && hours !== 12) hours += 12;
+            if (modifier === 'AM' && hours === 12) hours = 0;
+            const slotTime = new Date(`${dateStr}T${String(hours).padStart(2, '0')}:${minutes}:00`);
+            return (slotTime - nowInCentral) < (60 * 60 * 1000);
+        }
+
+        async function renderGrid() {
+            const grid = document.getElementById('time-grid');
+            const selectedDate = dateInput.value;
+            const dateObj = new Date(selectedDate + 'T00:00:00');
+            const day = dateObj.getDay();
+            
+            grid.innerHTML = "Checking availability..."; 
+            document.getElementById('slot-container').style.display = "block";
+            document.getElementById('form-container').style.display = "none";
+            selectedIndices = [];
+
+            if (![1, 3, 5].includes(day)) {
+                grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>The Lab is closed. Please select Mon, Wed, or Fri.</div>";
+                return;
+            }
+
+            try {
+                const statusRes = await fetch(`${SCRIPT_URL}?action=getStatus`);
+                const statusData = await statusRes.json();
+                const isOnline = (printer === "Super7") ? statusData.super7 === "Online" : statusData.scara === "Online";
+                if (!isOnline) {
+                    grid.innerHTML = `<div style="grid-column: 1/-1; background: #fee2e2; color: #b91c1c; padding: 30px; border-radius: 15px; font-weight: 700;">⚠️ This printer is currently OFFLINE for maintenance.</div>`;
+                    return;
+                }
+            } catch (e) { console.error("Status check failed"); }
+
+            grid.innerHTML = "";
+            const times = (printer === "Super7") ? super7Times : scaraTimes;
+            times.forEach((timeStr, i) => {
+                if (printer === "Super7" && day === 1 && i === 1) return;
+                const slot = document.createElement('div');
+                slot.className = 'time-slot'; slot.id = `slot-${i}`;
+                if (isWithinLockout(selectedDate, timeStr)) slot.classList.add('locked');
+                else slot.onclick = () => handleSelection(i, day);
+                if (printer === "Super7" && day === 1 && i === 0) slot.innerHTML = `<span class="clay-badge">Clay Prep</span>` + timeStr;
+                else slot.innerText = timeStr;
+                grid.appendChild(slot);
+            });
+        }
+
+        function handleSelection(idx, day) {
+            if (printer === "SCARA") {
+                selectedIndices = selectedIndices.includes(idx) ? [] : [idx];
+            } else {
+                const isMonday = (day === 1);
+                if (isMonday && idx === 0) {
+                    selectedIndices = selectedIndices.includes(0) ? [] : [0, 1];
+                } else {
+                    if (selectedIndices.includes(idx)) {
+                        selectedIndices = selectedIndices.filter(i => i !== idx);
+                        if (isMonday && selectedIndices.includes(0) && selectedIndices.length === 1) selectedIndices.push(1);
+                    } else {
+                        if (isMonday && selectedIndices.includes(0)) {
+                            if (idx === 2) selectedIndices = [0, 1, 2];
+                            else selectedIndices = [idx];
+                        } else if (selectedIndices.length < 2 && (selectedIndices.length === 0 || Math.abs(selectedIndices[0] - idx) === 1)) {
+                            selectedIndices.push(idx); selectedIndices.sort((a,b) => a - b);
+                        } else selectedIndices = [idx];
+                    }
+                }
+            }
+            updateVisuals(day);
+        }
+
+        function updateVisuals(day) {
+            const grid = document.getElementById('time-grid');
+            const isMonday = (day === 1);
+            const clayActive = selectedIndices.includes(0) && printer === "Super7" && isMonday;
+            let autoSlot = document.getElementById('slot-1');
+            if (isMonday && printer === "Super7") {
+                if (clayActive && !autoSlot) {
+                    autoSlot = document.createElement('div'); autoSlot.className = 'time-slot selected'; autoSlot.id = 'slot-1'; autoSlot.innerText = "10:00 AM - 10:30 AM";
+                    grid.insertBefore(autoSlot, grid.children[1]);
+                } else if (!clayActive && autoSlot) autoSlot.remove();
+            }
+            document.querySelectorAll('.time-slot').forEach(slot => {
+                const id = parseInt(slot.id.replace('slot-', ''));
+                slot.classList.toggle('selected', selectedIndices.includes(id));
+            });
+            document.getElementById('form-container').style.display = selectedIndices.length > 0 ? "block" : "none";
+        }
+
+        function clearAll() { selectedIndices = []; renderGrid(); }
+        function toggleView(view) {
+            document.getElementById('booking-view').style.display = (view === 'booking') ? 'block' : 'none';
+            document.getElementById('manage-view').style.display = (view === 'manage') ? 'block' : 'none';
+        }
+
+        async function handleConfirm() {
+            const name = document.getElementById('user-name').value;
+            const email = document.getElementById('user-email').value;
+            if (!name || !email) return alert("Please fill in your details.");
+            const btn = document.getElementById('submit-btn'); btn.disabled = true;
+            const payload = { action: 'book', name, email, printer, date: dateInput.value, time: selectedIndices.map(i => (printer==="Super7"?super7Times:scaraTimes)[i]).join(', '), group: document.getElementById('group-members').value || "" };
+            const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+            const out = await res.json();
+            if (out.status === "success") { alert("Reservation Confirmed!"); window.location.href = "index.html"; }
+            else { alert(out.message); btn.disabled = false; }
+        }
+
+        async function lookupBookings() {
+            const name = document.getElementById('lookup-name').value;
+            const email = document.getElementById('lookup-email').value;
+            if (!name || !email) return alert("Enter details.");
+            const list = document.getElementById('results-list'); list.innerHTML = "Searching...";
+            const res = await fetch(`${SCRIPT_URL}?action=getHistory&email=${email}&name=${name}`);
+            const data = await res.json();
+            list.innerHTML = data.length === 0 ? "No bookings found." : data.map(b => {
+                const locked = isWithinLockout(b.date, b.time.split(', ')[0]);
+                return `<div class="booking-item"><div><b>${b.printer}</b><br>${b.date} @ ${b.time}</div>${locked ? '<span>LOCKED</span>' : `<button class="cancel-btn" onclick="cancelBooking('${b.id}')">Cancel</button>`}</div>`;
+            }).join('');
+        }
+
+        async function cancelBooking(id) {
+            if (!confirm("Cancel?")) return;
+            await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'cancel', id: id }) });
+            lookupBookings();
+        }
+    </script>
+</body>
+</html>
