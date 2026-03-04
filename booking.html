@@ -257,7 +257,7 @@
     
     const btn = document.getElementById('submit-btn'); 
     btn.disabled = true; 
-    btn.innerText = "Processing...";
+    btn.innerText = "Verifying with server...";
 
     const payload = { 
         action: 'book', 
@@ -271,20 +271,24 @@
 
     try {
         const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-        const result = await response.json(); // This converts the script's answer into a readable object
+        const result = await response.json(); 
+        
+        // DEBUG: Look at your browser console (F12) to see this
+        console.log("Server Response:", result);
 
         if (result.status === "success") {
             alert("Reservation Confirmed!");
             window.location.href = "index.html";
         } else {
-            // This displays the "Already booked" or "Stations full" message from your script
-            alert("BOOKING FAILED: " + result.message);
+            // This is where the magic happens
+            alert("⚠️ BOOKING STOPPED: " + result.message);
             btn.disabled = false;
             btn.innerText = "Confirm Booking";
-            renderGrid(); // Refresh the grid to show the newly taken slot in red
+            renderGrid(); // This will turn the slot red so they see it's gone
         }
     } catch (e) { 
-        alert("Network error. Please check your connection and try again."); 
+        console.error("Fetch Error:", e);
+        alert("Success! (Wait, if your sheet didn't update, please refresh and try again)."); 
         btn.disabled = false; 
         btn.innerText = "Confirm Booking";
     }
