@@ -270,23 +270,78 @@
         }
 
         async function lookupBookings() {
-            const name = document.getElementById('lookup-name').value;
-            const email = document.getElementById('lookup-email').value;
-            if (!name || !email) return alert("Enter details.");
-            const list = document.getElementById('results-list'); list.innerHTML = "Searching...";
-            const res = await fetch(`${SCRIPT_URL}?action=getHistory&email=${email}&name=${name}`);
-            const data = await res.json();
-            list.innerHTML = data.length === 0 ? "No bookings found." : data.map(b => {
-                const locked = isWithinLockout(b.date, b.time.split(', ')[0]);
-                return `<div class="booking-item"><div><b>${b.printer}</b><br>${b.date} @ ${b.time}</div>${locked ? '<span>LOCKED</span>' : `<button class="cancel-btn" onclick="cancelBooking('${b.id}')">Cancel</button>`}</div>`;
-            }).join('');
+    const name = document.getElementById('lookup-name').value.trim();
+    const email = document.getElementById('lookup-email').value.trim().toLowerCase();
+    
+    if (!name || !email) return alert("Please enter both Name and Email.");
+    
+    const list = document.getElementById('results-list'); 
+    list.innerHTML = "<div class='loading'>Searching archives...</div>";
+    
+    try {
+        const res = await fetch(`${SCRIPT_URL}?action=getHistory`);
+        const allData = await res.json();
+        
+        // Filter the results locally to ensure it finds the student
+        const userBookings = allData.filter(b => 
+            b.email.toLowerCase() === email || 
+            b.name.toLowerCase().includes(name.toLowerCase())
+        );
+
+        if (userBookings.length === 0) {
+            list.innerHTML = "<div style='padding:15px; color:#666;'>No active bookings found for this info.</div>";
+            return;
         }
 
-        async function cancelBooking(id) {
-            if (!confirm("Cancel?")) return;
-            await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'cancel', id: id }) });
-            lookupBookings();
-        }
+        list.innerHTML = userBookings.map(b => {
+            // Check if it's too late to cancel (1 hour rule)
+            const locked = isWithinLockout(b.date, b.time.split(' - ')[0]);
+            
+            return `
+                <div class="booking-item" style="border-left: 4px solid #4f46e5; margin-bottom:10px; padding:10px; background:#f9fafb;">
+                    <div>
+                        <strong>${b.printer}</strong><br>
+                        ${b.date} @ ${b.time}
+                    </div>
+                    ${locked ? 
+                        '<span style="color:#94a3b8; font-size:0.8rem;">LOCKED (Under 1hr)</span>' : 
+                        `<button class="cancel-btn" onclick="cancelBooking('${b.id}', '${b.date}', '${b.name}', '${b.printer}', '${b.time}')" style="background:#ef4444; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">Cancel</button>`
+                    }
+                </div>`;
+        }).join('');
+    } catch (err) {
+        list.innerHTML = "Error connecting to database.";
+        console.error(err);
+    }
+}
+
+        async function cancelBooking(id, date, name, printer, time) {
+    if (!confirm("Are you sure you want to cancel this reservation?")) return;
+    
+    // Show loading state
+    document.getElementById('results-list').innerHTML = "Cancelling...";
+
+    const payload = { 
+        action: 'cancel', 
+        id: id,
+        date: date,
+        name: name,
+        printer: printer,
+        time: time
+    };
+
+    await fetch(SCRIPT_URL, { 
+        method: 'POST', 
+        mode: 'no-cors', // Important for cross-domain
+        body: JSON.stringify(payload) 
+    });
+
+    // Wait a second for the sheet to update then refresh list
+    setTimeout(() => {
+        lookupBookings();
+        alert("Booking cancelled successfully.");
+    }, 1500);
+}
     </script>
 </body>
 </html>
