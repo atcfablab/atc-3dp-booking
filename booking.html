@@ -121,7 +121,6 @@
         dateInput.setAttribute('min', new Date().toISOString().split('T')[0]);
         dateInput.onchange = () => renderGrid();
 
-        // 1-Hour Lockout Logic
         function isWithinLockout(dateStr, timeStr) {
             const nowInCentral = new Date(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', hour12: false, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(new Date()));
             const startStr = timeStr.split(' - ')[0];
@@ -134,12 +133,10 @@
             return (slotTime - nowInCentral) < (60 * 60 * 1000);
         }
 
-        // Render Grid with Availability Check
         async function renderGrid() {
             const grid = document.getElementById('time-grid');
             const selectedDate = dateInput.value;
             if (!selectedDate) return;
-
             const dateObj = new Date(selectedDate + 'T00:00:00');
             const day = dateObj.getDay();
             
@@ -158,7 +155,6 @@
                     fetch(`${SCRIPT_URL}?action=getStatus`),
                     fetch(`${SCRIPT_URL}?action=getHistory`)
                 ]);
-
                 const statusData = await statusRes.json();
                 const allBookings = await historyRes.json();
 
@@ -173,15 +169,11 @@
                 
                 times.forEach((timeStr, i) => {
                     if (printer === "Super7" && day === 1 && i === 1) return;
-
                     const slot = document.createElement('div');
-                    slot.className = 'time-slot'; 
-                    slot.id = `slot-${i}`;
+                    slot.className = 'time-slot'; slot.id = `slot-${i}`;
 
                     const isReserved = allBookings.some(b => 
-                        b.printer === printer && 
-                        b.date === selectedDate && 
-                        b.time.includes(timeStr)
+                        b.printer === printer && b.date === selectedDate && b.time.includes(timeStr)
                     );
 
                     if (isReserved) {
@@ -200,12 +192,9 @@
                     }
                     grid.appendChild(slot);
                 });
-            } catch (e) { 
-                grid.innerHTML = "Error loading slots. Please refresh.";
-            }
+            } catch (e) { grid.innerHTML = "Error loading slots."; }
         }
 
-        // Selection & UI Logic
         function handleSelection(idx, day) {
             if (printer === "SCARA") {
                 selectedIndices = selectedIndices.includes(idx) ? [] : [idx];
@@ -253,98 +242,54 @@
             document.getElementById('manage-view').style.display = (view === 'manage') ? 'block' : 'none';
         }
 
-        // THE CORE ACTIONS: BOOK, LOOKUP, CANCEL
         async function handleConfirm() {
             const name = document.getElementById('user-name').value.trim();
             const email = document.getElementById('user-email').value.trim();
             if (!name || !email) return alert("Please fill in your details.");
-            
-            const btn = document.getElementById('submit-btn'); 
-            btn.disabled = true;
-            btn.innerText = "Reserving...";
-
-            const payload = { 
-                action: 'book', 
-                name, 
-                email, 
-                printer, 
-                date: dateInput.value, 
-                time: selectedIndices.map(i => (printer==="Super7"?super7Times:scaraTimes)[i]).join(', '), 
-                group: document.getElementById('group-members').value || "" 
-            };
-
+            const btn = document.getElementById('submit-btn'); btn.disabled = true;
+            const payload = { action: 'book', name, email, printer, date: dateInput.value, time: selectedIndices.map(i => (printer==="Super7"?super7Times:scaraTimes)[i]).join(', '), group: document.getElementById('group-members').value || "" };
             try {
                 const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
                 const out = await res.json();
-                if (out.status === "success") { 
-                    alert("Reservation Confirmed! It has been added to the lab calendar."); 
-                    window.location.href = "index.html"; 
-                } else { 
-                    alert(out.message); 
-                    btn.disabled = false; 
-                    btn.innerText = "Confirm Reservation";
-                }
-            } catch (e) {
-                alert("Connection error. Please try again.");
-                btn.disabled = false;
-            }
+                if (out.status === "success") { alert("Reservation Confirmed!"); window.location.href = "index.html"; }
+                else { alert(out.message); btn.disabled = false; }
+            } catch (e) { alert("Error."); btn.disabled = false; }
         }
 
         async function lookupBookings() {
             const nameField = document.getElementById('lookup-name');
             const emailField = document.getElementById('lookup-email');
             const list = document.getElementById('results-list');
-            
             if (!nameField.value || !emailField.value) return alert("Enter both name and email.");
-            
-            const searchName = nameField.value.trim().toLowerCase();
-            const searchEmail = emailField.value.trim().toLowerCase();
-            list.innerHTML = "Searching database...";
-
+            const sN = nameField.value.trim().toLowerCase();
+            const sE = emailField.value.trim().toLowerCase();
+            list.innerHTML = "Searching...";
             try {
                 const res = await fetch(`${SCRIPT_URL}?action=getHistory`);
                 const allData = await res.json();
-                
-                const userBookings = allData.filter(b => 
-                    (b.email && b.email.toLowerCase() === searchEmail) || 
-                    (b.name && b.name.toLowerCase().includes(searchName))
-                );
-
-                if (userBookings.length === 0) {
-                    list.innerHTML = "No active bookings found.";
-                    return;
-                }
-
+                const userBookings = allData.filter(b => (b.email && b.email.toLowerCase() === sE) || (b.name && b.name.toLowerCase().includes(sN)));
+                if (userBookings.length === 0) { list.innerHTML = "No active bookings found."; return; }
                 list.innerHTML = userBookings.map(b => {
                     const locked = isWithinLockout(b.date, b.time.split(' - ')[0]);
-                    return `
-                        <div class="booking-item" style="border:1px solid #ddd; padding:10px; margin-top:10px; border-radius:8px;">
-                            <strong>${b.printer}</strong>: ${b.date} @ ${b.time}
-                            <div style="margin-top:5px;">
-                                ${locked ? '<span>LOCKED (Under 1hr)</span>' : 
-                                `<button onclick="cancelBooking('${b.id}', '${b.date}', '${b.name.replace(/'/g, "\\'")}', '${b.printer}', '${b.time}')" style="color:red; cursor:pointer;">Cancel Reservation</button>`}
-                            </div>
-                        </div>`;
+                    return `<div class="booking-item" style="border:1px solid #ddd; padding:10px; margin-top:10px; border-radius:8px;">
+                        <strong>${b.printer}</strong>: ${b.date} @ ${b.time}
+                        <div style="margin-top:5px;">
+                            ${locked ? '<span>LOCKED (Under 1hr)</span>' : `<button onclick="cancelBooking('${b.id}', '${b.date}', '${b.name.replace(/'/g, "\\'")}', '${b.printer}', '${b.time}')" style="color:red; cursor:pointer;">Cancel</button>`}
+                        </div>
+                    </div>`;
                 }).join('');
-            } catch (err) {
-                list.innerHTML = "Error fetching data.";
-            }
+            } catch (err) { list.innerHTML = "Error."; }
         }
 
         async function cancelBooking(id, date, name, printer, time) {
-            if (!confirm("Cancel this reservation?")) return;
-            document.getElementById('results-list').innerHTML = "Cancelling and updating calendar...";
-
+            if (!confirm("Cancel reservation?")) return;
+            document.getElementById('results-list').innerHTML = "Cancelling...";
             const payload = { action: 'cancel', id, date, name, printer, time };
-
             try {
                 await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-                alert("Booking cancelled.");
+                alert("Cancelled.");
                 setTimeout(lookupBookings, 1500);
-            } catch (e) {
-                alert("Error during cancellation.");
-                lookupBookings();
-            }
+            } catch (e) { alert("Error."); lookupBookings(); }
         }
     </script>
 </body>
