@@ -119,6 +119,7 @@
                 const isNoShow = row.noshow === "Yes";
 				// Clean up the date string in case Google sends an ISO timestamp
 				const cleanDate = row.date && row.date.includes('T') ? row.date.split('T')[0] : row.date;
+				const displayDate = row.date.split('T')[0];
 				
 				// Then use ${cleanDate} in your HTML instead of ${row.date}
                 return `
