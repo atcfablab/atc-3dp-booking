@@ -62,7 +62,7 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyfSrApD_2RteAukPLiwol_yfmbKbu3CP6G2utkR5A0rNa41lKzZog6vq2VOtiMT57nqA/exec"; 
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw--VGI0KatwjB6I_ghEhxwlwUxp9yTKHDFaNOR6LfOOGS1-3jGw6AZ2A1js65t5rJU3Q/exec"; 
         let allBookings = [];
         let statuses = { super7: "Online", scara: "Online" };
 
@@ -117,6 +117,10 @@
                 const missCount = violationMap[row.email] || 0;
                 const isFlagged = missCount >= 3;
                 const isNoShow = row.noshow === "Yes";
+				// Clean up the date string in case Google sends an ISO timestamp
+				const cleanDate = row.date && row.date.includes('T') ? row.date.split('T')[0] : row.date;
+				
+				// Then use ${cleanDate} in your HTML instead of ${row.date}
                 return `
                     <tr class="${isFlagged ? 'violation-row' : ''}">
                         <td style="font-weight:600;">${row.date}</td><td>${row.time}</td>
