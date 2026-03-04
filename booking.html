@@ -161,30 +161,43 @@
                 const times = (printer === "Super7") ? super7Times : scaraTimes;
                 
                 times.forEach((timeStr, i) => {
-                    if (printer === "Super7" && day === 1 && i === 1) return;
-                    const slot = document.createElement('div');
-                    slot.className = 'time-slot'; slot.id = `slot-${i}`;
+    // Skip the 10:00 AM slot on Mondays for Super7 because it's bundled with Clay Prep
+    if (printer === "Super7" && day === 1 && i === 1) return;
+    
+    const slot = document.createElement('div');
+    slot.className = 'time-slot'; 
+    slot.id = `slot-${i}`;
 
-                    const isReserved = allBookings.some(b => 
-                        b.printer === printer && b.date === selectedDate && b.time.includes(timeStr)
-                    );
+    // 1. COUNT how many bookings exist for this specific printer/date/time
+    const bookingCount = allBookings.filter(b => 
+        b.printer === printer && b.date === selectedDate && b.time.includes(timeStr)
+    ).length;
 
-                    if (isReserved) {
-                        slot.classList.add('reserved');
-                        slot.innerText = timeStr + " (Reserved)";
-                    } else if (isWithinLockout(selectedDate, timeStr)) {
-                        slot.classList.add('locked');
-                        slot.innerText = timeStr;
-                    } else {
-                        slot.onclick = () => handleSelection(i, day);
-                        if (printer === "Super7" && day === 1 && i === 0) {
-                            slot.innerHTML = `<span class="clay-badge">Clay Prep</span>` + timeStr;
-                        } else {
-                            slot.innerText = timeStr;
-                        }
-                    }
-                    grid.appendChild(slot);
-                });
+    // 2. DEFINE CAPACITY: Super7 Monday 9AM slot allows 2 students
+    const isClayPrepSlot = (printer === "Super7" && day === 1 && i === 0);
+    const maxCapacity = isClayPrepSlot ? 2 : 1;
+
+    // 3. Check if slot is full based on the new capacity
+    const isFull = bookingCount >= maxCapacity;
+
+    if (isFull) {
+        slot.classList.add('reserved');
+        slot.innerText = timeStr + " (Full)";
+    } else if (isWithinLockout(selectedDate, timeStr)) {
+        slot.classList.add('locked');
+        slot.innerText = timeStr;
+    } else {
+        slot.onclick = () => handleSelection(i, day);
+        if (isClayPrepSlot) {
+            // Show how many spots are left (2 total - current bookings)
+            const spotsLeft = 2 - bookingCount;
+            slot.innerHTML = `<span class="clay-badge">Clay Prep (${spotsLeft} left)</span>` + timeStr;
+        } else {
+            slot.innerText = timeStr;
+        }
+    }
+    grid.appendChild(slot);
+});
             } catch (e) { grid.innerHTML = "Error loading slots."; }
         }
 
