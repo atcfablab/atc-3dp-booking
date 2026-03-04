@@ -23,22 +23,14 @@
         .time-slot { position: relative; padding: 18px 5px; border: 1px solid #e5e7eb; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 0.8rem; text-align: center; transition: 0.1s; background: #fff; display: flex; align-items: center; justify-content: center; }
         .time-slot.selected { background: #000 !important; color: #fff !important; border-color: #000 !important; }
         .time-slot.locked { opacity: 0.3; pointer-events: none; background: #f9fafb; cursor: not-allowed; }
+        .time-slot.reserved { background-color: #e2e8f0; color: #94a3b8; text-decoration: line-through; cursor: not-allowed; border: 1px solid #cbd5e1; pointer-events: none; }
         .clay-badge { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); background: #f59e0b; color: white; font-size: 0.6rem; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; white-space: nowrap; z-index: 10; }
         .primary-btn { background: #000; color: white; border: none; width: 100%; padding: 18px; border-radius: 35px; font-weight: 800; font-size: 1rem; cursor: pointer; margin-top: 20px; }
         .secondary-btn { background: #fff; color: #888; border: 1px solid #e5e7eb; width: 100%; padding: 12px; border-radius: 35px; font-weight: 500; font-size: 0.85rem; cursor: pointer; margin-top: 15px; }
-        .booking-item { border: 1px solid #eee; padding: 15px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; text-align: left; }
+        .booking-item { border: 1px solid #eee; padding: 15px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; text-align: left; background: #fff; }
         .cancel-btn { background: #fee2e2; color: #b91c1c; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 700; font-size: 0.75rem; cursor: pointer; }
-        #form-container, #manage-view, #results-container { display: none; }
+        #form-container, #manage-view { display: none; }
         @media (max-width: 480px) { .time-grid { grid-template-columns: repeat(2, 1fr); } }
-		/* Styling for reserved/disabled slots */
-		.time-slot.reserved {
-			background-color: #e2e8f0;
-			color: #94a3b8;
-			text-decoration: line-through;
-			cursor: not-allowed;
-			border: 1px solid #cbd5e1;
-			pointer-events: none; /* Prevents clicking */
-		}
     </style>
 </head>
 <body>
@@ -64,18 +56,19 @@
             </div>
             <button class="secondary-btn" onclick="toggleView('manage')">Manage / Cancel Existing Booking</button>
         </div>
+
         <div id="manage-view">
             <div class="back-nav"><a onclick="toggleView('booking')">← Back to Booking</a></div>
             <h1>Your Bookings</h1>
             <input type="text" id="lookup-name" class="text-input" placeholder="Full Name">
             <input type="email" id="lookup-email" class="text-input" placeholder="uark-email@uark.edu">
             <button class="primary-btn" id="lookup-btn" onclick="lookupBookings()">Find My Bookings</button>
-            <div id="results-container" style="margin-top: 30px;"><div id="results-list"></div></div>
+            <div id="results-container" style="margin-top: 30px; display: block;"><div id="results-list"></div></div>
         </div>
     </div>
 
-<script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwPFCnI2nyWmKqDR7TA6s1MnsnpZ7ljJGGXynKEi_splVkaJneFbECw8K-b0ThYcytLiw/exec"; 
+    <script>
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwPFCnI2nyWmKqDR7TA6s1MnsnpZ7ljGGXynKEi_splVkaJneFbECw8K-b0ThYcytLiw/exec"; 
         const params = new URLSearchParams(window.location.search);
         const printer = params.get('printer') || "Super7";
         let selectedIndices = [];
@@ -237,6 +230,8 @@
             document.getElementById('form-container').style.display = selectedIndices.length > 0 ? "block" : "none";
         }
 
+        function clearAll() { selectedIndices = []; updateVisuals(); document.getElementById('form-container').style.display = "none"; }
+
         function toggleView(view) {
             document.getElementById('booking-view').style.display = (view === 'booking') ? 'block' : 'none';
             document.getElementById('manage-view').style.display = (view === 'manage') ? 'block' : 'none';
@@ -250,46 +245,61 @@
             const payload = { action: 'book', name, email, printer, date: dateInput.value, time: selectedIndices.map(i => (printer==="Super7"?super7Times:scaraTimes)[i]).join(', '), group: document.getElementById('group-members').value || "" };
             try {
                 const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-                const out = await res.json();
-                if (out.status === "success") { alert("Reservation Confirmed!"); window.location.href = "index.html"; }
-                else { alert(out.message); btn.disabled = false; }
+                alert("Reservation Confirmed!"); window.location.href = "index.html";
             } catch (e) { alert("Error."); btn.disabled = false; }
         }
 
         async function lookupBookings() {
-            const nameField = document.getElementById('lookup-name');
-            const emailField = document.getElementById('lookup-email');
+            const n = document.getElementById('lookup-name').value.trim();
+            const e = document.getElementById('lookup-email').value.trim().toLowerCase();
             const list = document.getElementById('results-list');
-            if (!nameField.value || !emailField.value) return alert("Enter both name and email.");
-            const sN = nameField.value.trim().toLowerCase();
-            const sE = emailField.value.trim().toLowerCase();
-            list.innerHTML = "Searching...";
+            if (!n || !e) return alert("Enter both name and email.");
+            
+            list.innerHTML = "<strong>Searching...</strong>";
+            
             try {
                 const res = await fetch(`${SCRIPT_URL}?action=getHistory`);
-                const allData = await res.json();
-                const userBookings = allData.filter(b => (b.email && b.email.toLowerCase() === sE) || (b.name && b.name.toLowerCase().includes(sN)));
-                if (userBookings.length === 0) { list.innerHTML = "No active bookings found."; return; }
-                list.innerHTML = userBookings.map(b => {
+                const all = await res.json();
+                const filtered = all.filter(b => 
+                    (b.email && b.email.toLowerCase() === e) || 
+                    (b.name && b.name.toLowerCase().includes(n.toLowerCase()))
+                );
+                
+                if (filtered.length === 0) {
+                    list.innerHTML = "<div style='color:red;'>No active bookings found.</div>";
+                    return;
+                }
+                
+                list.innerHTML = filtered.map(b => {
                     const locked = isWithinLockout(b.date, b.time.split(' - ')[0]);
-                    return `<div class="booking-item" style="border:1px solid #ddd; padding:10px; margin-top:10px; border-radius:8px;">
-                        <strong>${b.printer}</strong>: ${b.date} @ ${b.time}
-                        <div style="margin-top:5px;">
-                            ${locked ? '<span>LOCKED (Under 1hr)</span>' : `<button onclick="cancelBooking('${b.id}', '${b.date}', '${b.name.replace(/'/g, "\\'")}', '${b.printer}', '${b.time}')" style="color:red; cursor:pointer;">Cancel</button>`}
+                    return `<div class="booking-item">
+                        <div>
+                            <strong>${b.printer}</strong><br>
+                            ${b.date} @ ${b.time}
+                        </div>
+                        <div>
+                            ${locked ? '<span style="color:gray; font-size:0.7rem;">LOCKED</span>' : 
+                            `<button class="cancel-btn" onclick="cancelBooking('${b.id}','${b.date}','${b.name.replace(/'/g, "\\'")}','${b.printer}','${b.time}')">Cancel</button>`}
                         </div>
                     </div>`;
                 }).join('');
-            } catch (err) { list.innerHTML = "Error."; }
+            } catch (err) {
+                list.innerHTML = "Error connecting to server.";
+            }
         }
 
         async function cancelBooking(id, date, name, printer, time) {
-            if (!confirm("Cancel reservation?")) return;
+            if (!confirm("Are you sure you want to cancel this reservation?")) return;
             document.getElementById('results-list').innerHTML = "Cancelling...";
-            const payload = { action: 'cancel', id, date, name, printer, time };
             try {
+                const payload = { action: 'cancel', id, date, name, printer, time };
                 await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-                alert("Cancelled.");
-                setTimeout(lookupBookings, 1500);
-            } catch (e) { alert("Error."); lookupBookings(); }
+                alert("Reservation cancelled successfully.");
+                lookupBookings();
+            } catch (e) {
+                alert("Error cancelling booking.");
+                lookupBookings();
+            }
         }
     </script>
 </body>
