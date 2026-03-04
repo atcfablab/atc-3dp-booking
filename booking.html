@@ -74,7 +74,7 @@
         </div>
     </div>
 
-    <script>
+<script>
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwPFCnI2nyWmKqDR7TA6s1MnsnpZ7ljJGGXynKEi_splVkaJneFbECw8K-b0ThYcytLiw/exec"; 
         const params = new URLSearchParams(window.location.search);
         const printer = params.get('printer') || "Super7";
@@ -85,30 +85,25 @@
 
         const rules = {
             "Super7": [
-                "<strong>Clay Preparation is required every Monday from 9:00 - 10:00 AM.</strong> Two students will need to sign up and load clay for the week. If this is not done, the class will not have clay to print with. These two students will also automatically receive printing time from 10:00 - 10:30 AM on that day. They are welcome to book the following 30 minute slot from 10:30 - 11:00 AM if they would like a full hour of printing between the two. This can be coordinated as a group.",
+                "<strong>Clay Preparation is required every Monday from 9:00 - 10:00 AM.</strong> Two students will need to sign up and load clay for the week.",
                 "<strong>Printing sessions are 30-minute increments.</strong>",
                 "<strong>Students may book 30 or 60 minutes per session.</strong>",
                 "<strong>One student max per printing time slot.</strong>",
                 "<strong>Two students max per Clay Preparation slot.</strong>",
                 "<strong>Lunch (12:00 - 1:00 PM) is not bookable.</strong>",
                 "<strong>Sign up no later than one (1) hour before you plan to print.</strong>",
-                "<strong>Use the Manage/Cancel Existing Booking button at the bottom of the page to cancel or look up your appointment(s).</strong> Cancellations must be made at least one (1) hour in advance of your booked starting time. Enter your name and email to find and cancel your booking. If cancellation falls within a shorter time frame, try to coordinate with your classmates on another group taking your scheduled spot.",
-                "<strong>All work must end at 4:30 PM to allow staff to begin shutting down the space and shop.</strong> Assist in any cleaning necessary at the end of your printing session.",
-                "<strong>If any other issues arise, contact atcfablab@gmail.com & we will help you as best we can.</strong>"
+                "<strong>All work must end at 4:30 PM to allow staff to begin shutting down.</strong>"
             ],
             "SCARA": [
                 "<strong>All time slots include BOTH your mixing/loading & your printing time.</strong> All time slots are two (2) hours long.",
-                "<strong>Tuesdays and Thursdays can be used for testing your mixes BEFORE booking an official time slot.</strong> These days do not have to be officially booked.",
-                "<strong>There are NO consecutive sessions - you only get one session per day per group.</strong> This is to allow as many groups as possible to print in a day.",
-                "<strong>When booking time, include your other group members' names.</strong>",
-                "<strong>Lunch (12:00 - 1:00 PM) is not bookable.</strong>",
+                "<strong>Tuesdays and Thursdays can be used for testing mixes.</strong>",
+                "<strong>One session per day per group.</strong>",
                 "<strong>Sign up no later than one (1) hour before you plan to print.</strong>",
-                "<strong>Use the Manage/Cancel Existing Booking button at the bottom of the page to cancel or look up your appointment(s).</strong> Cancellations must be made at least one (1) hour in advance of your booked starting time. Enter your name and email to find and cancel your booking. If cancellation falls within a shorter time frame, try to coordinate with your classmates on another group taking your scheduled spot.",
-                "<strong>All work must end at 4:30 PM to allow staff to begin shutting down the space and shop.</strong> Assist in any cleaning necessary at the end of your printing session.",
-                "<strong>If any other issues arise, contact atcfablab@gmail.com & we will help you as best we can.</strong>"
+                "<strong>All work must end at 4:30 PM.</strong>"
             ]
         };
 
+        // Initialize Page
         document.getElementById('printer-title').innerText = "Reserve " + printer;
         rules[printer].forEach(text => {
             const li = document.createElement('li'); li.innerHTML = text;
@@ -120,6 +115,7 @@
         dateInput.setAttribute('min', new Date().toISOString().split('T')[0]);
         dateInput.onchange = () => renderGrid();
 
+        // 1-Hour Lockout Logic
         function isWithinLockout(dateStr, timeStr) {
             const nowInCentral = new Date(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', hour12: false, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(new Date()));
             const startStr = timeStr.split(' - ')[0];
@@ -132,9 +128,12 @@
             return (slotTime - nowInCentral) < (60 * 60 * 1000);
         }
 
+        // Render Grid with Availability Check
         async function renderGrid() {
             const grid = document.getElementById('time-grid');
             const selectedDate = dateInput.value;
+            if (!selectedDate) return;
+
             const dateObj = new Date(selectedDate + 'T00:00:00');
             const day = dateObj.getDay();
             
@@ -143,14 +142,12 @@
             document.getElementById('form-container').style.display = "none";
             selectedIndices = [];
 
-            // 1. Check for Lab Closure
             if (![1, 3, 5].includes(day)) {
                 grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>The Lab is closed. Please select Mon, Wed, or Fri.</div>";
                 return;
             }
 
             try {
-                // 2. Fetch Printer Status & Current Bookings simultaneously
                 const [statusRes, historyRes] = await Promise.all([
                     fetch(`${SCRIPT_URL}?action=getStatus`),
                     fetch(`${SCRIPT_URL}?action=getHistory`)
@@ -159,27 +156,22 @@
                 const statusData = await statusRes.json();
                 const allBookings = await historyRes.json();
 
-                // 3. Check if Printer is Online
                 const isOnline = (printer === "Super7") ? statusData.super7 === "Online" : statusData.scara === "Online";
                 if (!isOnline) {
                     grid.innerHTML = `<div style="grid-column: 1/-1; background: #fee2e2; color: #b91c1c; padding: 30px; border-radius: 15px; font-weight: 700;">⚠️ This printer is currently OFFLINE for maintenance.</div>`;
                     return;
                 }
 
-                // 4. Render the slots
                 grid.innerHTML = "";
                 const times = (printer === "Super7") ? super7Times : scaraTimes;
                 
                 times.forEach((timeStr, i) => {
-                    // Skip index 1 for Super7 on Mondays (auto-included with Clay Prep)
                     if (printer === "Super7" && day === 1 && i === 1) return;
 
                     const slot = document.createElement('div');
                     slot.className = 'time-slot'; 
                     slot.id = `slot-${i}`;
 
-                    // Check if this specific slot is already reserved in the Google Sheet
-                    // We check if the saved 'time' string contains our current 'timeStr'
                     const isReserved = allBookings.some(b => 
                         b.printer === printer && 
                         b.date === selectedDate && 
@@ -202,13 +194,12 @@
                     }
                     grid.appendChild(slot);
                 });
-
             } catch (e) { 
-                console.error("Availability check failed", e);
                 grid.innerHTML = "Error loading slots. Please refresh.";
             }
         }
 
+        // Selection & UI Logic
         function handleSelection(idx, day) {
             if (printer === "SCARA") {
                 selectedIndices = selectedIndices.includes(idx) ? [] : [idx];
@@ -251,97 +242,104 @@
             document.getElementById('form-container').style.display = selectedIndices.length > 0 ? "block" : "none";
         }
 
-        function clearAll() { selectedIndices = []; renderGrid(); }
         function toggleView(view) {
             document.getElementById('booking-view').style.display = (view === 'booking') ? 'block' : 'none';
             document.getElementById('manage-view').style.display = (view === 'manage') ? 'block' : 'none';
         }
 
+        // THE CORE ACTIONS: BOOK, LOOKUP, CANCEL
         async function handleConfirm() {
-            const name = document.getElementById('user-name').value;
-            const email = document.getElementById('user-email').value;
+            const name = document.getElementById('user-name').value.trim();
+            const email = document.getElementById('user-email').value.trim();
             if (!name || !email) return alert("Please fill in your details.");
-            const btn = document.getElementById('submit-btn'); btn.disabled = true;
-            const payload = { action: 'book', name, email, printer, date: dateInput.value, time: selectedIndices.map(i => (printer==="Super7"?super7Times:scaraTimes)[i]).join(', '), group: document.getElementById('group-members').value || "" };
-            const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-            const out = await res.json();
-            if (out.status === "success") { alert("Reservation Confirmed!"); window.location.href = "index.html"; }
-            else { alert(out.message); btn.disabled = false; }
+            
+            const btn = document.getElementById('submit-btn'); 
+            btn.disabled = true;
+            btn.innerText = "Reserving...";
+
+            const payload = { 
+                action: 'book', 
+                name, 
+                email, 
+                printer, 
+                date: dateInput.value, 
+                time: selectedIndices.map(i => (printer==="Super7"?super7Times:scaraTimes)[i]).join(', '), 
+                group: document.getElementById('group-members').value || "" 
+            };
+
+            try {
+                const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+                const out = await res.json();
+                if (out.status === "success") { 
+                    alert("Reservation Confirmed! It has been added to the lab calendar."); 
+                    window.location.href = "index.html"; 
+                } else { 
+                    alert(out.message); 
+                    btn.disabled = false; 
+                    btn.innerText = "Confirm Reservation";
+                }
+            } catch (e) {
+                alert("Connection error. Please try again.");
+                btn.disabled = false;
+            }
         }
 
         async function lookupBookings() {
-    const name = document.getElementById('lookup-name').value.trim();
-    const email = document.getElementById('lookup-email').value.trim().toLowerCase();
-    
-    if (!name || !email) return alert("Please enter both Name and Email.");
-    
-    const list = document.getElementById('results-list'); 
-    list.innerHTML = "<div class='loading'>Searching archives...</div>";
-    
-    try {
-        const res = await fetch(`${SCRIPT_URL}?action=getHistory`);
-        const allData = await res.json();
-        
-        // Filter the results locally to ensure it finds the student
-        const userBookings = allData.filter(b => 
-            b.email.toLowerCase() === email || 
-            b.name.toLowerCase().includes(name.toLowerCase())
-        );
+            const nameField = document.getElementById('lookup-name');
+            const emailField = document.getElementById('lookup-email');
+            const list = document.getElementById('results-list');
+            
+            if (!nameField.value || !emailField.value) return alert("Enter both name and email.");
+            
+            const searchName = nameField.value.trim().toLowerCase();
+            const searchEmail = emailField.value.trim().toLowerCase();
+            list.innerHTML = "Searching database...";
 
-        if (userBookings.length === 0) {
-            list.innerHTML = "<div style='padding:15px; color:#666;'>No active bookings found for this info.</div>";
-            return;
+            try {
+                const res = await fetch(`${SCRIPT_URL}?action=getHistory`);
+                const allData = await res.json();
+                
+                const userBookings = allData.filter(b => 
+                    (b.email && b.email.toLowerCase() === searchEmail) || 
+                    (b.name && b.name.toLowerCase().includes(searchName))
+                );
+
+                if (userBookings.length === 0) {
+                    list.innerHTML = "No active bookings found.";
+                    return;
+                }
+
+                list.innerHTML = userBookings.map(b => {
+                    const locked = isWithinLockout(b.date, b.time.split(' - ')[0]);
+                    return `
+                        <div class="booking-item" style="border:1px solid #ddd; padding:10px; margin-top:10px; border-radius:8px;">
+                            <strong>${b.printer}</strong>: ${b.date} @ ${b.time}
+                            <div style="margin-top:5px;">
+                                ${locked ? '<span>LOCKED (Under 1hr)</span>' : 
+                                `<button onclick="cancelBooking('${b.id}', '${b.date}', '${b.name.replace(/'/g, "\\'")}', '${b.printer}', '${b.time}')" style="color:red; cursor:pointer;">Cancel Reservation</button>`}
+                            </div>
+                        </div>`;
+                }).join('');
+            } catch (err) {
+                list.innerHTML = "Error fetching data.";
+            }
         }
 
-        list.innerHTML = userBookings.map(b => {
-            // Check if it's too late to cancel (1 hour rule)
-            const locked = isWithinLockout(b.date, b.time.split(' - ')[0]);
-            
-            return `
-                <div class="booking-item" style="border-left: 4px solid #4f46e5; margin-bottom:10px; padding:10px; background:#f9fafb;">
-                    <div>
-                        <strong>${b.printer}</strong><br>
-                        ${b.date} @ ${b.time}
-                    </div>
-                    ${locked ? 
-                        '<span style="color:#94a3b8; font-size:0.8rem;">LOCKED (Under 1hr)</span>' : 
-                        `<button class="cancel-btn" onclick="cancelBooking('${b.id}', '${b.date}', '${b.name}', '${b.printer}', '${b.time}')" style="background:#ef4444; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">Cancel</button>`
-                    }
-                </div>`;
-        }).join('');
-    } catch (err) {
-        list.innerHTML = "Error connecting to database.";
-        console.error(err);
-    }
-}
-
         async function cancelBooking(id, date, name, printer, time) {
-    if (!confirm("Are you sure you want to cancel this reservation?")) return;
-    
-    // Show loading state
-    document.getElementById('results-list').innerHTML = "Cancelling...";
+            if (!confirm("Cancel this reservation?")) return;
+            document.getElementById('results-list').innerHTML = "Cancelling and updating calendar...";
 
-    const payload = { 
-        action: 'cancel', 
-        id: id,
-        date: date,
-        name: name,
-        printer: printer,
-        time: time
-    };
+            const payload = { action: 'cancel', id, date, name, printer, time };
 
-    await fetch(SCRIPT_URL, { 
-        method: 'POST', 
-        mode: 'no-cors', // Important for cross-domain
-        body: JSON.stringify(payload) 
-    });
-
-    // Wait a second for the sheet to update then refresh list
-    setTimeout(() => {
-        lookupBookings();
-        alert("Booking cancelled successfully.");
-    }, 1500);
-}
+            try {
+                await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+                alert("Booking cancelled.");
+                setTimeout(lookupBookings, 1500);
+            } catch (e) {
+                alert("Error during cancellation.");
+                lookupBookings();
+            }
+        }
     </script>
 </body>
 </html>
