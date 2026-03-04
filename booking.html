@@ -251,16 +251,44 @@
         }
 
         async function handleConfirm() {
-            const name = document.getElementById('user-name').value.trim();
-            const email = document.getElementById('user-email').value.trim();
-            if (!name || !email) return alert("Please fill in your details.");
-            const btn = document.getElementById('submit-btn'); btn.disabled = true;
-            const payload = { action: 'book', name, email, printer, date: dateInput.value, time: selectedIndices.map(i => (printer==="Super7"?super7Times:scaraTimes)[i]).join(', '), group: document.getElementById('group-members').value || "" };
-            try {
-                const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-                alert("Reservation Confirmed!"); window.location.href = "index.html";
-            } catch (e) { alert("Error."); btn.disabled = false; }
+    const name = document.getElementById('user-name').value.trim();
+    const email = document.getElementById('user-email').value.trim();
+    if (!name || !email) return alert("Please fill in your details.");
+    
+    const btn = document.getElementById('submit-btn'); 
+    btn.disabled = true; 
+    btn.innerText = "Processing...";
+
+    const payload = { 
+        action: 'book', 
+        name, 
+        email, 
+        printer, 
+        date: dateInput.value, 
+        time: selectedIndices.map(i => (printer === "Super7" ? super7Times : scaraTimes)[i]).join(', '), 
+        group: document.getElementById('group-members').value || "" 
+    };
+
+    try {
+        const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+        const result = await response.json(); // This converts the script's answer into a readable object
+
+        if (result.status === "success") {
+            alert("Reservation Confirmed!");
+            window.location.href = "index.html";
+        } else {
+            // This displays the "Already booked" or "Stations full" message from your script
+            alert("BOOKING FAILED: " + result.message);
+            btn.disabled = false;
+            btn.innerText = "Confirm Booking";
+            renderGrid(); // Refresh the grid to show the newly taken slot in red
         }
+    } catch (e) { 
+        alert("Network error. Please check your connection and try again."); 
+        btn.disabled = false; 
+        btn.innerText = "Confirm Booking";
+    }
+}
 
         async function lookupBookings() {
             const n = document.getElementById('lookup-name').value.trim();
