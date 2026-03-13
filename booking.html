@@ -135,12 +135,6 @@
             const specialOpenDates = ["2026-03-17"];  // Add dates to open here
             const specialClosedDates = ["2026-03-23"]; // Add dates to close here
 
-            // Reset UI and clear old messages
-            grid.innerHTML = "Checking availability..."; 
-            document.getElementById('slot-container').style.display = "block";
-            document.getElementById('form-container').style.display = "none";
-            selectedIndices = [];
-
             // 1. CALCULATE DAY
             const dateObj = new Date(selectedDate + 'T00:00:00');
             const day = dateObj.getDay(); 
@@ -153,14 +147,24 @@
             // PRIORITY 1: Manual Holiday Closure
             if (isSpecialClosed) {
                 grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>The Lab is closed today for a holiday or special event.</div>";
+                document.getElementById('slot-container').style.display = "block";
+                document.getElementById('form-container').style.display = "none";
                 return;
             }
 
-            // PRIORITY 2: Standard Hours Check (Blocked if NOT standard AND NOT special open)
+            // PRIORITY 2: Standard Hours Check
             if (!isStandardDay && !isSpecialOpen) {
                 grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>The Lab is closed. Please select Mon, Wed, or Fri.</div>";
+                document.getElementById('slot-container').style.display = "block";
+                document.getElementById('form-container').style.display = "none";
                 return;
             }
+
+            // Reset UI for loading
+            grid.innerHTML = "Checking availability..."; 
+            document.getElementById('slot-container').style.display = "block";
+            document.getElementById('form-container').style.display = "none";
+            selectedIndices = [];
 
             // 3. FETCH DATA FROM SERVER
             try {
@@ -181,7 +185,6 @@
                 const times = (printer === "Super7") ? super7Times : scaraTimes;
                 
                 times.forEach((timeStr, i) => {
-                    // Skip 10:00 AM slot on Mondays for Super7 (bundled with Clay Prep)
                     if (printer === "Super7" && day === 1 && i === 1) return;
                     
                     const slot = document.createElement('div');
@@ -203,7 +206,7 @@
                         slot.classList.add('locked');
                         slot.innerText = timeStr;
                     } else {
-                        slot.onclick = () => handleSelection(idx = i, currentDay = day);
+                        slot.onclick = () => handleSelection(i, day);
                         if (isClayPrepSlot) {
                             const spotsLeft = 2 - bookingCount;
                             slot.innerHTML = `<span class="clay-badge">Clay Prep (${spotsLeft} left)</span>` + timeStr;
@@ -215,7 +218,7 @@
                 });
             } catch (e) { 
                 console.error(e);
-                grid.innerHTML = "Error loading slots. Please check your internet connection."; 
+                grid.innerHTML = "Error loading slots."; 
             }
         }
 
