@@ -132,6 +132,31 @@
             if (!selectedDate) return;
             const dateObj = new Date(selectedDate + 'T00:00:00');
             const day = dateObj.getDay();
+
+            // --- START OF NEW UPDATES ---
+    // Staff: Add specific dates to these lists as needed ("YYYY-MM-DD")
+    const specialOpenDates = ["2026-03-17"]; // Example: ["2026-03-24"] opens a Tuesday
+    const specialClosedDates = ["2026-03-23"]; // Example: ["2026-05-25"] closes a Monday holiday
+
+    const isSpecialOpen = specialOpenDates.includes(selectedDate);
+    const isSpecialClosed = specialClosedDates.includes(selectedDate);
+
+    // 1. Check for Manual Closures (Holidays/Events)
+    if (isSpecialClosed) {
+        grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>The Lab is closed today for a holiday or special event.</div>";
+        document.getElementById('slot-container').style.display = "block";
+        document.getElementById('form-container').style.display = "none";
+        return;
+    }
+
+    // 2. Check for Standard Hours (1,3,5) vs Special Openings
+    if (![1, 3, 5].includes(day) && !isSpecialOpen) {
+        grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>The Lab is closed. Standard Hours: Mon, Wed, Fri.</div>";
+        document.getElementById('slot-container').style.display = "block";
+        document.getElementById('form-container').style.display = "none";
+        return;
+    }
+    // --- END OF NEW UPDATES ---
             
             grid.innerHTML = "Checking availability..."; 
             document.getElementById('slot-container').style.display = "block";
