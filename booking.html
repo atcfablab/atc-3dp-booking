@@ -127,55 +127,42 @@
         }
 
         async function renderGrid() {
-    const grid = document.getElementById('time-grid');
-    const selectedDate = dateInput.value; // Should be "2026-03-17"
-    if (!selectedDate) return;
+            const grid = document.getElementById('time-grid');
+            const selectedDate = dateInput.value; 
+            if (!selectedDate) return;
 
-    // --- STAFF OVERRIDES ---
-    const specialOpenDates = ["2026-03-17"]; 
-    const specialClosedDates = ["2026-03-23"]; 
+            // --- STAFF OVERRIDES ---
+            const specialOpenDates = ["2026-03-17"];  // Add dates to open here
+            const specialClosedDates = ["2026-03-23"]; // Add dates to close here
 
-    // Reset UI
-    grid.innerHTML = "Checking availability..."; 
-    document.getElementById('slot-container').style.display = "block";
-    document.getElementById('form-container').style.display = "none";
-    selectedIndices = [];
-
-    // 1. CALCULATE DAY (Ensuring local timezone)
-    const dateObj = new Date(selectedDate + 'T00:00:00');
-    const day = dateObj.getDay(); // 0=Sun, 1=Mon, 2=Tue, etc.
-
-    // 2. LOGIC OVERRIDE
-    const isSpecialOpen = specialOpenDates.includes(selectedDate);
-    const isSpecialClosed = specialClosedDates.includes(selectedDate);
-    const isStandardDay = [1, 3, 5].includes(day);
-
-    // PRIORITY 1: Manual Closure (Holiday)
-    if (isSpecialClosed) {
-        grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>The Lab is closed today for a holiday.</div>";
-        return;
-    }
-
-    // PRIORITY 2: If it's NOT a special opening AND NOT a standard day, show "Closed"
-    if (!isSpecialOpen && !isStandardDay) {
-        grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>The Lab is closed. Standard Hours: Mon, Wed, Fri.</div>";
-        return;
-    }
-
-    // If we reach this point, the code proceeds to "Checking availability..." 
-    // and fetches the data from Google Sheets!
-    // --- END OF NEW UPDATES ---
-            
+            // Reset UI and clear old messages
             grid.innerHTML = "Checking availability..."; 
             document.getElementById('slot-container').style.display = "block";
             document.getElementById('form-container').style.display = "none";
             selectedIndices = [];
 
-            if (![1, 3, 5].includes(day)) {
+            // 1. CALCULATE DAY
+            const dateObj = new Date(selectedDate + 'T00:00:00');
+            const day = dateObj.getDay(); 
+
+            // 2. LOGIC CHECKS
+            const isSpecialOpen = specialOpenDates.includes(selectedDate);
+            const isSpecialClosed = specialClosedDates.includes(selectedDate);
+            const isStandardDay = [1, 3, 5].includes(day);
+
+            // PRIORITY 1: Manual Holiday Closure
+            if (isSpecialClosed) {
+                grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>The Lab is closed today for a holiday or special event.</div>";
+                return;
+            }
+
+            // PRIORITY 2: Standard Hours Check (Blocked if NOT standard AND NOT special open)
+            if (!isStandardDay && !isSpecialOpen) {
                 grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>The Lab is closed. Please select Mon, Wed, or Fri.</div>";
                 return;
             }
 
+            // 3. FETCH DATA FROM SERVER
             try {
                 const [statusRes, historyRes] = await Promise.all([
                     fetch(`${SCRIPT_URL}?action=getStatus`),
@@ -194,44 +181,42 @@
                 const times = (printer === "Super7") ? super7Times : scaraTimes;
                 
                 times.forEach((timeStr, i) => {
-    // Skip the 10:00 AM slot on Mondays for Super7 because it's bundled with Clay Prep
-    if (printer === "Super7" && day === 1 && i === 1) return;
-    
-    const slot = document.createElement('div');
-    slot.className = 'time-slot'; 
-    slot.id = `slot-${i}`;
+                    // Skip 10:00 AM slot on Mondays for Super7 (bundled with Clay Prep)
+                    if (printer === "Super7" && day === 1 && i === 1) return;
+                    
+                    const slot = document.createElement('div');
+                    slot.className = 'time-slot'; 
+                    slot.id = `slot-${i}`;
 
-    // 1. COUNT how many bookings exist for this specific printer/date/time
-    const bookingCount = allBookings.filter(b => 
-        b.printer === printer && b.date === selectedDate && b.time.includes(timeStr)
-    ).length;
+                    const bookingCount = allBookings.filter(b => 
+                        b.printer === printer && b.date === selectedDate && b.time.includes(timeStr)
+                    ).length;
 
-    // 2. DEFINE CAPACITY: Super7 Monday 9AM slot allows 2 students
-    const isClayPrepSlot = (printer === "Super7" && day === 1 && i === 0);
-    const maxCapacity = isClayPrepSlot ? 2 : 1;
+                    const isClayPrepSlot = (printer === "Super7" && day === 1 && i === 0);
+                    const maxCapacity = isClayPrepSlot ? 2 : 1;
+                    const isFull = bookingCount >= maxCapacity;
 
-    // 3. Check if slot is full based on the new capacity
-    const isFull = bookingCount >= maxCapacity;
-
-    if (isFull) {
-        slot.classList.add('reserved');
-        slot.innerText = timeStr + " (Full)";
-    } else if (isWithinLockout(selectedDate, timeStr)) {
-        slot.classList.add('locked');
-        slot.innerText = timeStr;
-    } else {
-        slot.onclick = () => handleSelection(i, day);
-        if (isClayPrepSlot) {
-            // Show how many spots are left (2 total - current bookings)
-            const spotsLeft = 2 - bookingCount;
-            slot.innerHTML = `<span class="clay-badge">Clay Prep (${spotsLeft} left)</span>` + timeStr;
-        } else {
-            slot.innerText = timeStr;
-        }
-    }
-    grid.appendChild(slot);
-});
-            } catch (e) { grid.innerHTML = "Error loading slots."; }
+                    if (isFull) {
+                        slot.classList.add('reserved');
+                        slot.innerText = timeStr + " (Full)";
+                    } else if (isWithinLockout(selectedDate, timeStr)) {
+                        slot.classList.add('locked');
+                        slot.innerText = timeStr;
+                    } else {
+                        slot.onclick = () => handleSelection(idx = i, currentDay = day);
+                        if (isClayPrepSlot) {
+                            const spotsLeft = 2 - bookingCount;
+                            slot.innerHTML = `<span class="clay-badge">Clay Prep (${spotsLeft} left)</span>` + timeStr;
+                        } else {
+                            slot.innerText = timeStr;
+                        }
+                    }
+                    grid.appendChild(slot);
+                });
+            } catch (e) { 
+                console.error(e);
+                grid.innerHTML = "Error loading slots. Please check your internet connection."; 
+            }
         }
 
         function handleSelection(idx, day) {
