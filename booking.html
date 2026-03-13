@@ -141,22 +141,22 @@
     const isSpecialOpen = specialOpenDates.includes(selectedDate);
     const isSpecialClosed = specialClosedDates.includes(selectedDate);
 
-    // 1. Check for Manual Closures (Holidays/Events)
+    // 1. Check for Manual Closures (Holidays) - This happens first!
     if (isSpecialClosed) {
         grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>The Lab is closed today for a holiday or special event.</div>";
-        document.getElementById('slot-container').style.display = "block";
-        document.getElementById('form-container').style.display = "none";
-        return;
+        return; 
     }
 
-    // 2. Check for Standard Hours (1,3,5) vs Special Openings
-    // This says: "If it's NOT Mon/Wed/Fri AND it's NOT on the special open list..."
-    if (![1, 3, 5].includes(day) && !isSpecialOpen) {
+    // 2. Check for Open Days
+    const isStandardDay = [1, 3, 5].includes(day);
+
+    // If it's NOT a standard day AND it's NOT a special opening, THEN it's closed.
+    if (!isStandardDay && !isSpecialOpen) {
         grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>The Lab is closed. Standard Hours: Mon, Wed, Fri.</div>";
-        document.getElementById('slot-container').style.display = "block";
-        document.getElementById('form-container').style.display = "none";
-        return; // This STOPS the code here if BOTH are true
+        return;
     }
+    
+    // If it gets here, the code continues to "Checking availability..."
     // --- END OF NEW UPDATES ---
             
             grid.innerHTML = "Checking availability..."; 
