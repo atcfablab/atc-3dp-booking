@@ -127,36 +127,43 @@
         }
 
         async function renderGrid() {
-            const grid = document.getElementById('time-grid');
-            const selectedDate = dateInput.value;
-            if (!selectedDate) return;
-            const dateObj = new Date(selectedDate + 'T00:00:00');
-            const day = dateObj.getDay();
+    const grid = document.getElementById('time-grid');
+    const selectedDate = dateInput.value; // Should be "2026-03-17"
+    if (!selectedDate) return;
 
-            // --- START OF NEW UPDATES ---
-    // Staff: Add specific dates to these lists as needed ("YYYY-MM-DD")
-    const specialOpenDates = ["2026-03-17"]; // Example: ["2026-03-24"] opens a Tuesday
-    const specialClosedDates = ["2026-03-23"]; // Example: ["2026-05-25"] closes a Monday holiday
+    // --- STAFF OVERRIDES ---
+    const specialOpenDates = ["2026-03-17"]; 
+    const specialClosedDates = []; 
 
+    // Reset UI
+    grid.innerHTML = "Checking availability..."; 
+    document.getElementById('slot-container').style.display = "block";
+    document.getElementById('form-container').style.display = "none";
+    selectedIndices = [];
+
+    // 1. CALCULATE DAY (Ensuring local timezone)
+    const dateObj = new Date(selectedDate + 'T00:00:00');
+    const day = dateObj.getDay(); // 0=Sun, 1=Mon, 2=Tue, etc.
+
+    // 2. LOGIC OVERRIDE
     const isSpecialOpen = specialOpenDates.includes(selectedDate);
     const isSpecialClosed = specialClosedDates.includes(selectedDate);
-
-    // 1. Check for Manual Closures (Holidays) - This happens first!
-    if (isSpecialClosed) {
-        grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>The Lab is closed today for a holiday or special event.</div>";
-        return; 
-    }
-
-    // 2. Check for Open Days
     const isStandardDay = [1, 3, 5].includes(day);
 
-    // If it's NOT a standard day AND it's NOT a special opening, THEN it's closed.
-    if (!isStandardDay && !isSpecialOpen) {
+    // PRIORITY 1: Manual Closure (Holiday)
+    if (isSpecialClosed) {
+        grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>The Lab is closed today for a holiday.</div>";
+        return;
+    }
+
+    // PRIORITY 2: If it's NOT a special opening AND NOT a standard day, show "Closed"
+    if (!isSpecialOpen && !isStandardDay) {
         grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>The Lab is closed. Standard Hours: Mon, Wed, Fri.</div>";
         return;
     }
-    
-    // If it gets here, the code continues to "Checking availability..."
+
+    // If we reach this point, the code proceeds to "Checking availability..." 
+    // and fetches the data from Google Sheets!
     // --- END OF NEW UPDATES ---
             
             grid.innerHTML = "Checking availability..."; 
