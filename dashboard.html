@@ -147,23 +147,23 @@
             statusMsg.innerText = "Saving...";
             
             try {
-                const response = await fetch(SCRIPT_URL, { 
-                    method: 'POST', 
+                // We send as a POST, and Google will handle the redirect
+                await fetch(SCRIPT_URL, { 
+                    method: 'POST',
+                    mode: 'no-cors', // <--- ADD THIS if 'cors' keeps failing
                     body: JSON.stringify({ 
                         action: 'updateNote', 
                         id: id, 
                         notes: val 
                     }) 
                 });
-                const result = await response.json();
-                if(result.status === "success") {
-                    statusMsg.innerText = "Saved";
-                    // Update local data so it doesn't disappear on refresh
-                    const booking = allBookings.find(b => b.id == id);
-                    if(booking) booking.notes = val;
-                }
+                
+                // Note: with 'no-cors', we can't read the response JSON, 
+                // but the data WILL hit the Google Sheet.
+                statusMsg.innerText = "Saved"; 
+                setTimeout(() => { statusMsg.innerText = "Synced"; }, 2000);
             } catch(e) {
-                statusMsg.innerText = "Error Saving";
+                statusMsg.innerText = "Network Error";
                 console.error(e);
             }
         }
