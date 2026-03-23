@@ -275,7 +275,13 @@
     const name = document.getElementById('user-name').value.trim();
     const email = document.getElementById('user-email').value.trim();
     if (!name || !email) return alert("Please fill in your details.");
-    
+
+            // NEW: Validation for SCARA
+    if (!name || !email) return alert("Please fill in your details.");
+    if (printer === "SCARA" && !group) {
+        return alert("⚠️ SCARA Requirement: You must list all group members to book this machine.");
+    }
+            
     const btn = document.getElementById('submit-btn'); 
     btn.disabled = true; 
     btn.innerText = "Verifying with server...";
