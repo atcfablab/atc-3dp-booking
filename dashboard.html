@@ -104,9 +104,23 @@
     const current = (p === 'Super7' ? statuses.super7 : statuses.scara);
     const next = current === "Online" ? "Offline" : "Online";
     
+    // --- NEW: INSTANT VISUAL CHANGE ---
+    // Find the dot element (e.g., id="super7-status")
+    const dotId = p.toLowerCase() + "-status"; 
+    const dotElement = document.getElementById(dotId);
+    
+    if (dotElement) {
+        // Swap the colors immediately so the user sees the change
+        dotElement.className = `status-dot ${next === 'Online' ? 'online' : 'offline'}`;
+        // Update our local variable so the next click works correctly too
+        if (p === 'Super7') statuses.super7 = next;
+        else statuses.scara = next;
+    }
+    // ----------------------------------
+
     statusMsg.innerText = `Setting ${p} to ${next}...`;
 
-    // 1. We use 'no-cors' to bypass the browser security block
+    // Send the data to Google in the background
     fetch(SCRIPT_URL, { 
         method: 'POST', 
         mode: 'no-cors',
@@ -117,12 +131,11 @@
         }) 
     });
 
-    // 2. We wait 1.2 seconds to give the Google Sheet time to "breathe" 
-    // before we refresh the status dots on the dashboard.
+    // We still keep a small delay before a full "sync" refresh
     setTimeout(() => {
-        statusMsg.innerText = "Status Updated";
-        loadStatus(); // Refreshes the Online/Offline dots
-    }, 1200);
+        statusMsg.innerText = "Status Synced with Sheet";
+        loadStatus(); // This ensures the UI is officially in sync with the DB
+    }, 1500);
 }
 		
         function renderTable() {
