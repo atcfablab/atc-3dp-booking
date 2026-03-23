@@ -102,32 +102,33 @@
         async function toggleStatus(p) {
     const statusMsg = document.getElementById('status-msg');
     
-    // MATCHING YOUR HTML IDs: "dot-Super7" and "btn-Super7"
-    const dotId = "dot-" + p; 
-    const btnId = "btn-" + p;
-    
-    const dotElement = document.getElementById(dotId);
-    const btnElement = document.getElementById(btnId);
+    // Exact IDs from your HTML: "dot-Super7" or "dot-SCARA"
+    const dotElement = document.getElementById("dot-" + p);
+    const btnElement = document.getElementById("btn-" + p);
 
     if (!dotElement) {
-        console.error("Could not find element:", dotId);
+        console.error("Critical Error: HTML Dot not found for " + p);
         return;
     }
 
-    // 1. DETERMINE NEXT STATE
-    // Check if it currently has the 'online' class
-    const isOnline = dotElement.classList.contains('online');
-    const nextStatus = isOnline ? "Offline" : "Online";
+    // 1. Check current color to determine what's next
+    // We check the actual computed style to see if it's currently green
+    const currentColor = window.getComputedStyle(dotElement).backgroundColor;
+    const isCurrentlyOnline = (currentColor === "rgb(0, 128, 0)" || currentColor === "green");
+    const nextStatus = isCurrentlyOnline ? "Offline" : "Online";
     
-    // 2. INSTANT VISUAL SWAP
-    // Change the dot color immediately
-    dotElement.className = `status-dot ${isOnline ? 'offline' : 'online'}`;
-    // Change the button text immediately
-    if (btnElement) btnElement.innerText = nextStatus === "Online" ? "Set Offline" : "Set Online";
+    // 2. FORCE THE VISUAL CHANGE IMMEDIATELY
+    if (nextStatus === "Online") {
+        dotElement.style.backgroundColor = "green";
+        if (btnElement) btnElement.innerText = "Set Offline";
+    } else {
+        dotElement.style.backgroundColor = "red";
+        if (btnElement) btnElement.innerText = "Set Online";
+    }
     
-    statusMsg.innerText = `Sending ${p} ${nextStatus} request...`;
+    statusMsg.innerText = `Syncing ${p} ${nextStatus} status...`;
 
-    // 3. SEND TO GOOGLE (Background)
+    // 3. SEND TO GOOGLE
     fetch(SCRIPT_URL, { 
         method: 'POST', 
         mode: 'no-cors',
@@ -138,10 +139,10 @@
         }) 
     });
 
-    // 4. SYNC UPDATE
+    // 4. Final Sync
     setTimeout(() => {
-        statusMsg.innerText = "Status Synced";
-        loadStatus(); // Final check to confirm the sheet updated
+        statusMsg.innerText = "Synced";
+        loadStatus(); 
     }, 1500);
 }
 		
