@@ -101,40 +101,47 @@
 
         async function toggleStatus(p) {
     const statusMsg = document.getElementById('status-msg');
-    const current = (p === 'Super7' ? statuses.super7 : statuses.scara);
-    const next = current === "Online" ? "Offline" : "Online";
     
-    // --- NEW: INSTANT VISUAL CHANGE ---
-    // Find the dot element (e.g., id="super7-status")
-    const dotId = p.toLowerCase() + "-status"; 
+    // MATCHING YOUR HTML IDs: "dot-Super7" and "btn-Super7"
+    const dotId = "dot-" + p; 
+    const btnId = "btn-" + p;
+    
     const dotElement = document.getElementById(dotId);
-    
-    if (dotElement) {
-        // Swap the colors immediately so the user sees the change
-        dotElement.className = `status-dot ${next === 'Online' ? 'online' : 'offline'}`;
-        // Update our local variable so the next click works correctly too
-        if (p === 'Super7') statuses.super7 = next;
-        else statuses.scara = next;
+    const btnElement = document.getElementById(btnId);
+
+    if (!dotElement) {
+        console.error("Could not find element:", dotId);
+        return;
     }
-    // ----------------------------------
 
-    statusMsg.innerText = `Setting ${p} to ${next}...`;
+    // 1. DETERMINE NEXT STATE
+    // Check if it currently has the 'online' class
+    const isOnline = dotElement.classList.contains('online');
+    const nextStatus = isOnline ? "Offline" : "Online";
+    
+    // 2. INSTANT VISUAL SWAP
+    // Change the dot color immediately
+    dotElement.className = `status-dot ${isOnline ? 'offline' : 'online'}`;
+    // Change the button text immediately
+    if (btnElement) btnElement.innerText = nextStatus === "Online" ? "Set Offline" : "Set Online";
+    
+    statusMsg.innerText = `Sending ${p} ${nextStatus} request...`;
 
-    // Send the data to Google in the background
+    // 3. SEND TO GOOGLE (Background)
     fetch(SCRIPT_URL, { 
         method: 'POST', 
         mode: 'no-cors',
         body: JSON.stringify({ 
             action: 'togglePrinter', 
             printer: p, 
-            status: next 
+            status: nextStatus 
         }) 
     });
 
-    // We still keep a small delay before a full "sync" refresh
+    // 4. SYNC UPDATE
     setTimeout(() => {
-        statusMsg.innerText = "Status Synced with Sheet";
-        loadStatus(); // This ensures the UI is officially in sync with the DB
+        statusMsg.innerText = "Status Synced";
+        loadStatus(); // Final check to confirm the sheet updated
     }, 1500);
 }
 		
