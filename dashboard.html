@@ -62,7 +62,9 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbweWbXj7Ga2Ns-DcfAboS7mKFkNCGGS83I8qrnnioaUxWlOwZvqKzZQH_ybK88Mz849OQ/exec"; 
+        // Add this at the very top of your <script> tag in dashboard.html
+let isUpdating = { Super7: false, SCARA: false };
+		const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbweWbXj7Ga2Ns-DcfAboS7mKFkNCGGS83I8qrnnioaUxWlOwZvqKzZQH_ybK88Mz849OQ/exec"; 
         let allBookings = [];
         let statuses = { super7: "Online", scara: "Online" };
 
@@ -90,60 +92,58 @@
         }
 
         function updateDots() {
-            ['Super7', 'SCARA'].forEach(p => {
-                const state = p === 'Super7' ? statuses.super7 : statuses.scara;
-                document.getElementById(`dot-${p}`).className = 'status-dot ' + state.toLowerCase();
-                const btn = document.getElementById(`btn-${p}`);
-                btn.innerText = state === "Online" ? "Set Offline" : "Set Online";
-                btn.style.backgroundColor = state === "Online" ? "#fee2e2" : "#d1fae5";
-            });
-        }
+    ['Super7', 'SCARA'].forEach(p => {
+        // --- NEW: THE LOCK CHECK ---
+        // If we just clicked the button, don't let the refresh 
+        // overwrite the color for a few seconds.
+        if (isToggling[p]) return; 
 
-        async function toggleStatus(p) {
+        const state = p === 'Super7' ? statuses.super7 : statuses.scara;
+        const dot = document.getElementById(`dot-${p}`);
+        const btn = document.getElementById(`btn-${p}`);
+
+        if (dot) dot.className = 'status-dot ' + state.toLowerCase();
+        
+        if (btn) {
+            btn.innerText = state === "Online" ? "Set Offline" : "Set Online";
+            btn.style.backgroundColor = state === "Online" ? "#fee2e2" : "#d1fae5";
+        }
+    });
+}
+		
+async function toggleStatus(p) {
     const statusMsg = document.getElementById('status-msg');
     
-    // Exact IDs from your HTML: "dot-Super7" or "dot-SCARA"
-    const dotElement = document.getElementById("dot-" + p);
-    const btnElement = document.getElementById("btn-" + p);
+    // 1. Lock the printer
+    isToggling[p] = true;
 
-    if (!dotElement) {
-        console.error("Critical Error: HTML Dot not found for " + p);
-        return;
+    // 2. Determine current state and flip it
+    const dot = document.getElementById(`dot-${p}`);
+    const isOnline = dot.classList.contains('online');
+    const nextStatus = isOnline ? "Offline" : "Online";
+    
+    // 3. Update Visuals INSTANTLY
+    dot.className = 'status-dot ' + nextStatus.toLowerCase();
+    const btn = document.getElementById(`btn-${p}`);
+    if (btn) {
+        btn.innerText = nextStatus === "Online" ? "Set Offline" : "Set Online";
+        btn.style.backgroundColor = nextStatus === "Online" ? "#fee2e2" : "#d1fae5";
     }
 
-    // 1. Check current color to determine what's next
-    // We check the actual computed style to see if it's currently green
-    const currentColor = window.getComputedStyle(dotElement).backgroundColor;
-    const isCurrentlyOnline = (currentColor === "rgb(0, 128, 0)" || currentColor === "green");
-    const nextStatus = isCurrentlyOnline ? "Offline" : "Online";
-    
-    // 2. FORCE THE VISUAL CHANGE IMMEDIATELY
-    if (nextStatus === "Online") {
-        dotElement.style.backgroundColor = "green";
-        if (btnElement) btnElement.innerText = "Set Offline";
-    } else {
-        dotElement.style.backgroundColor = "red";
-        if (btnElement) btnElement.innerText = "Set Online";
-    }
-    
-    statusMsg.innerText = `Syncing ${p} ${nextStatus} status...`;
+    statusMsg.innerText = `Updating ${p}...`;
 
-    // 3. SEND TO GOOGLE
+    // 4. Send to Google
     fetch(SCRIPT_URL, { 
         method: 'POST', 
         mode: 'no-cors',
-        body: JSON.stringify({ 
-            action: 'togglePrinter', 
-            printer: p, 
-            status: nextStatus 
-        }) 
+        body: JSON.stringify({ action: 'togglePrinter', printer: p, status: nextStatus }) 
     });
 
-    // 4. Final Sync
+    // 5. Release the lock after 4 seconds and refresh data
     setTimeout(() => {
-        statusMsg.innerText = "Synced";
-        loadStatus(); 
-    }, 1500);
+        isToggling[p] = false;
+        loadData(); 
+    }, 4000);
 }
 		
         function renderTable() {
