@@ -150,6 +150,7 @@
                 return;
             }
 
+            // Update the error message below to reflect the new days
             if (!isStandardDay && !isSpecialOpen) {
                 grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>The Lab is closed. Please select a weekday.</div>";
                 document.getElementById('slot-container').style.display = "block";
