@@ -62,190 +62,203 @@
     </div>
 
     <script>
-        // Add this at the very top of your <script> tag in dashboard.html
-let isUpdating = { Super7: false, SCARA: false };
-		const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbweWbXj7Ga2Ns-DcfAboS7mKFkNCGGS83I8qrnnioaUxWlOwZvqKzZQH_ybK88Mz849OQ/exec"; 
-        let allBookings = [];
-        let statuses = { super7: "Online", scara: "Online" };
-
-        function checkPass() {
-            if (document.getElementById('pass-field').value === "ATC_SPRING_2026") {
-                document.getElementById('login-overlay').style.display='none';
-                document.getElementById('main-content').style.display='block';
-                loadData();
-            }
-        }
-
-        async function loadData() {
-            document.getElementById('status-msg').innerText = "Syncing...";
-            try {
-                const [hRes, sRes] = await Promise.all([
-                    fetch(`${SCRIPT_URL}?action=getHistory`),
-                    fetch(`${SCRIPT_URL}?action=getStatus`)
-                ]);
-                allBookings = await hRes.json();
-                statuses = await sRes.json();
-                updateDots();
-                renderTable();
-                document.getElementById('status-msg').innerText = "Synced";
-            } catch(e) { document.getElementById('status-msg').innerText = "Error Syncing"; }
-        }
-
-        function updateDots() {
-    ['Super7', 'SCARA'].forEach(p => {
-        // --- NEW: THE LOCK CHECK ---
-        // If we just clicked the button, don't let the refresh 
-        // overwrite the color for a few seconds.
-        if (isToggling[p]) return; 
-
-        const state = p === 'Super7' ? statuses.super7 : statuses.scara;
-        const dot = document.getElementById(`dot-${p}`);
-        const btn = document.getElementById(`btn-${p}`);
-
-        if (dot) dot.className = 'status-dot ' + state.toLowerCase();
-        
-        if (btn) {
-            btn.innerText = state === "Online" ? "Set Offline" : "Set Online";
-            btn.style.backgroundColor = state === "Online" ? "#fee2e2" : "#d1fae5";
-        }
-    });
-}
-		
-async function toggleStatus(p) {
-    const statusMsg = document.getElementById('status-msg');
+    // 1. GLOBAL SETTINGS & LOCKS
+    // We use this to prevent the background sync from overwriting our manual clicks
+    let isUpdating = { Super7: false, SCARA: false };
     
-    // 1. Lock the printer
-    isToggling[p] = true;
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbweWbXj7Ga2Ns-DcfAboS7mKFkNCGGS83I8qrnnioaUxWlOwZvqKzZQH_ybK88Mz849OQ/exec"; 
+    let allBookings = [];
+    let statuses = { super7: "Online", scara: "Online" };
 
-    // 2. Determine current state and flip it
-    const dot = document.getElementById(`dot-${p}`);
-    const isOnline = dot.classList.contains('online');
-    const nextStatus = isOnline ? "Offline" : "Online";
-    
-    // 3. Update Visuals INSTANTLY
-    dot.className = 'status-dot ' + nextStatus.toLowerCase();
-    const btn = document.getElementById(`btn-${p}`);
-    if (btn) {
-        btn.innerText = nextStatus === "Online" ? "Set Offline" : "Set Online";
-        btn.style.backgroundColor = nextStatus === "Online" ? "#fee2e2" : "#d1fae5";
+    function checkPass() {
+        if (document.getElementById('pass-field').value === "ATC_SPRING_2026") {
+            document.getElementById('login-overlay').style.display='none';
+            document.getElementById('main-content').style.display='block';
+            loadData();
+        }
     }
 
-    statusMsg.innerText = `Updating ${p}...`;
-
-    // 4. Send to Google
-    fetch(SCRIPT_URL, { 
-        method: 'POST', 
-        mode: 'no-cors',
-        body: JSON.stringify({ action: 'togglePrinter', printer: p, status: nextStatus }) 
-    });
-
-    // 5. Release the lock after 4 seconds and refresh data
-    setTimeout(() => {
-        isToggling[p] = false;
-        loadData(); 
-    }, 4000);
-}
-		
-        function renderTable() {
-            const tbody = document.getElementById('table-body');
-            const dateFilter = document.getElementById('dash-date').value;
-            const violationMap = {};
-            allBookings.forEach(b => { if (b.noshow === "Yes") violationMap[b.email] = (violationMap[b.email] || 0) + 1; });
-            const filtered = dateFilter ? allBookings.filter(b => b.date === dateFilter) : allBookings;
-            filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-            tbody.innerHTML = filtered.map(row => {
-                const missCount = violationMap[row.email] || 0;
-                const isFlagged = missCount >= 3;
-                const isNoShow = row.noshow === "Yes";
-				// Clean up the date string in case Google sends an ISO timestamp
-				const cleanDate = row.date && row.date.includes('T') ? row.date.split('T')[0] : row.date;
-				const displayDate = row.date.split('T')[0];
-				
-				// Then use ${cleanDate} in your HTML instead of ${row.date}
-                return `
-                    <tr class="${isFlagged ? 'violation-row' : ''}">
-                        <td style="font-weight:600;">${row.date}</td><td>${row.time}</td>
-                        <td class="${isFlagged ? 'flag-text' : ''}">${row.name} ${isFlagged ? '⚠️ ('+missCount+')' : ''}</td>
-                        <td style="font-size:0.75rem; color:#666;">${row.email}</td>
-                        <td><span class="tag tag-${row.printer.toLowerCase()}">${row.printer}</span></td>
-                        <td>
-                            <div style="display:flex; gap:10px;">
-                                <input type="text" class="notes-input" value="${row.notes || ''}" onblur="updateNote(${row.id}, this.value)" placeholder="Add note...">
-                                <button onclick="markNoShow(${row.id}, ${!isNoShow})" 
-                                    style="padding:5px 10px; border-radius:8px; cursor:pointer; font-size:0.7rem; font-weight:700; border:1px solid #ccc; background:${isNoShow ? '#ef4444; color:white;' : '#fff'};">
-                                    ${isNoShow ? 'Missed' : 'Mark Miss'}
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
+    // 2. DATA LOADING
+    async function loadData() {
+        const statusMsg = document.getElementById('status-msg');
+        statusMsg.innerText = "Syncing...";
+        try {
+            const [hRes, sRes] = await Promise.all([
+                fetch(`${SCRIPT_URL}?action=getHistory`),
+                fetch(`${SCRIPT_URL}?action=getStatus`)
+            ]);
+            allBookings = await hRes.json();
+            statuses = await sRes.json();
+            
+            updateDots();
+            renderTable();
+            statusMsg.innerText = "Synced";
+        } catch(e) { 
+            console.error("Sync Error:", e);
+            statusMsg.innerText = "Error Syncing"; 
         }
+    }
 
-        async function updateNote(id, val) {
-    const statusMsg = document.getElementById('status-msg');
-    statusMsg.innerText = "Saving...";
-    
-    // We use no-cors to bypass the browser security wall
-    fetch(SCRIPT_URL, { 
-        method: 'POST',
-        mode: 'no-cors', 
-        header: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({ action: 'updateNote', id: id, notes: val }) 
-    });
+    // 3. UI UPDATES (PRINTER STATUS)
+    function updateDots() {
+        ['Super7', 'SCARA'].forEach(p => {
+            // Check the lock - if we are currently toggling this printer, 
+            // do not let the background refresh change its color yet.
+            if (isUpdating[p]) return; 
 
-    // Because we use no-cors, we can't 'await' a response, 
-    // so we just assume it worked and update the UI.
-    setTimeout(() => {
-        statusMsg.innerText = "Saved";
-        const booking = allBookings.find(b => b.id == id);
-        if(booking) booking.notes = val;
-    }, 800);
-}
+            const state = p === 'Super7' ? statuses.super7 : statuses.scara;
+            const dot = document.getElementById(`dot-${p}`);
+            const btn = document.getElementById(`btn-${p}`);
 
-        async function markNoShow(id, state) {
-    const statusMsg = document.getElementById('status-msg');
-    statusMsg.innerText = "Updating...";
-    
-    fetch(SCRIPT_URL, { 
-        method: 'POST',
-        mode: 'no-cors',
-        header: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({ action: 'toggleNoShow', id: id, isNoShow: state }) 
-    });
-
-    setTimeout(() => {
-        loadData(); // Reload the table to show the change
-    }, 800);
-}
-
-        async function fetchAndReportCancelled() {
-            document.getElementById('status-msg').innerText = "Fetching Archive...";
-            const res = await fetch(`${SCRIPT_URL}?action=getArchive`);
-            const archiveData = await res.json();
-            if (archiveData.length === 0) { alert("No canceled records found."); return; }
-            printReport("Canceled Appointments", archiveData);
-            document.getElementById('status-msg').innerText = "Synced";
-        }
-
-        function generateReport(type) {
-            const violationMap = {};
-            allBookings.forEach(b => { if (b.noshow === "Yes") violationMap[b.email] = (violationMap[b.email] || 0) + 1; });
-            let reportData = allBookings;
-            let title = "Active Booking History";
-            if (type === 'violations') {
-                reportData = allBookings.filter(b => (violationMap[b.email] || 0) >= 3);
-                title = "Violation Report (3+ Misses)";
+            if (dot) dot.className = 'status-dot ' + state.toLowerCase();
+            
+            if (btn) {
+                btn.innerText = state === "Online" ? "Set Offline" : "Set Online";
+                // Green-ish for Online, Red-ish for Offline
+                btn.style.backgroundColor = state === "Online" ? "#fee2e2" : "#d1fae5";
             }
-            printReport(title, reportData, violationMap);
+        });
+    }
+
+    async function toggleStatus(p) {
+        const statusMsg = document.getElementById('status-msg');
+        
+        // 1. Lock the printer so updateDots() ignores it for a moment
+        isUpdating[p] = true;
+
+        // 2. Determine current state and flip it
+        const dot = document.getElementById(`dot-${p}`);
+        const isOnline = dot.classList.contains('online');
+        const nextStatus = isOnline ? "Offline" : "Online";
+        
+        // 3. Update Visuals INSTANTLY
+        dot.className = 'status-dot ' + nextStatus.toLowerCase();
+        const btn = document.getElementById(`btn-${p}`);
+        if (btn) {
+            btn.innerText = nextStatus === "Online" ? "Set Offline" : "Set Online";
+            btn.style.backgroundColor = nextStatus === "Online" ? "#fee2e2" : "#d1fae5";
         }
 
-        function printReport(title, data, vMap = {}) {
-            const win = window.open('', '_blank');
-            win.document.write(`<html><head><title>${title}</title><style>body{font-family:sans-serif;padding:30px;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:12px;}th{background:#eee;}</style></head><body><h1>${title}</h1><p>Generated: ${new Date().toLocaleString()}</p><table><thead><tr><th>Date</th><th>Name</th><th>Email</th><th>Printer</th><th>Time</th><th>Notes</th>${Object.keys(vMap).length ? '<th>Misses</th>' : ''}</tr></thead><tbody>${data.map(r=>`<tr><td>${r.date}</td><td>${r.name}</td><td>${r.email}</td><td>${r.printer}</td><td>${r.time}</td><td>${r.notes||''}</td>${Object.keys(vMap).length ? '<td>'+(vMap[r.email]||0)+'</td>' : ''}</tr>`).join('')}</tbody></table><script>window.print();<\/script></body></html>`);
-            win.document.close();
+        statusMsg.innerText = `Updating ${p}...`;
+
+        // 4. Send to Google (Background)
+        fetch(SCRIPT_URL, { 
+            method: 'POST', 
+            mode: 'no-cors',
+            body: JSON.stringify({ action: 'togglePrinter', printer: p, status: nextStatus }) 
+        });
+
+        // 5. Release the lock after 4 seconds and refresh data
+        setTimeout(() => {
+            isUpdating[p] = false;
+            loadData(); 
+        }, 4000);
+    }
+
+    // 4. TABLE RENDERING
+    function renderTable() {
+        const tbody = document.getElementById('table-body');
+        const dateFilter = document.getElementById('dash-date').value;
+        const violationMap = {};
+        
+        allBookings.forEach(b => { 
+            if (b.noshow === "Yes") violationMap[b.email] = (violationMap[b.email] || 0) + 1; 
+        });
+
+        const filtered = dateFilter ? allBookings.filter(b => b.date === dateFilter) : allBookings;
+        filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        tbody.innerHTML = filtered.map(row => {
+            const missCount = violationMap[row.email] || 0;
+            const isFlagged = missCount >= 3;
+            const isNoShow = row.noshow === "Yes";
+            
+            return `
+                <tr class="${isFlagged ? 'violation-row' : ''}">
+                    <td style="font-weight:600;">${row.date}</td>
+                    <td>${row.time}</td>
+                    <td class="${isFlagged ? 'flag-text' : ''}">${row.name} ${isFlagged ? '⚠️ ('+missCount+')' : ''}</td>
+                    <td style="font-size:0.75rem; color:#666;">${row.email}</td>
+                    <td><span class="tag tag-${row.printer.toLowerCase()}">${row.printer}</span></td>
+                    <td>
+                        <div style="display:flex; gap:10px;">
+                            <input type="text" class="notes-input" value="${row.notes || ''}" 
+                                onblur="updateNote(${row.id}, this.value)" placeholder="Add note...">
+                            <button onclick="markNoShow(${row.id}, ${!isNoShow})" 
+                                style="padding:5px 10px; border-radius:8px; cursor:pointer; font-size:0.7rem; font-weight:700; border:1px solid #ccc; background:${isNoShow ? '#ef4444; color:white;' : '#fff'};">
+                                ${isNoShow ? 'Missed' : 'Mark Miss'}
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    // 5. ACTION HANDLERS (NOTES & NO-SHOW)
+    async function updateNote(id, val) {
+        const statusMsg = document.getElementById('status-msg');
+        statusMsg.innerText = "Saving...";
+        
+        fetch(SCRIPT_URL, { 
+            method: 'POST',
+            mode: 'no-cors', 
+            body: JSON.stringify({ action: 'updateNote', id: id, notes: val }) 
+        });
+
+        setTimeout(() => {
+            statusMsg.innerText = "Saved";
+            const booking = allBookings.find(b => b.id == id);
+            if(booking) booking.notes = val;
+        }, 800);
+    }
+
+    async function markNoShow(id, state) {
+        const statusMsg = document.getElementById('status-msg');
+        statusMsg.innerText = "Updating...";
+        
+        fetch(SCRIPT_URL, { 
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify({ action: 'toggleNoShow', id: id, isNoShow: state }) 
+        });
+
+        setTimeout(() => {
+            loadData(); 
+        }, 800);
+    }
+
+    // 6. REPORTING
+    async function fetchAndReportCancelled() {
+        document.getElementById('status-msg').innerText = "Fetching Archive...";
+        try {
+            const res = await fetch(`${SCRIPT_URL}?action=getHistory`); // This retrieves the full history including potentially cancelled notes if you move them
+            const data = await res.json();
+            // Note: If you have a separate getArchive action in Apps Script, use that instead.
+            printReport("Canceled Appointments", data.filter(b => b.status === "Cancelled"));
+            document.getElementById('status-msg').innerText = "Synced";
+        } catch(e) {
+            alert("Error fetching archive.");
         }
-    </script>
+    }
+
+    function generateReport(type) {
+        const violationMap = {};
+        allBookings.forEach(b => { if (b.noshow === "Yes") violationMap[b.email] = (violationMap[b.email] || 0) + 1; });
+        let reportData = allBookings;
+        let title = "Active Booking History";
+        if (type === 'violations') {
+            reportData = allBookings.filter(b => (violationMap[b.email] || 0) >= 3);
+            title = "Violation Report (3+ Misses)";
+        }
+        printReport(title, reportData, violationMap);
+    }
+
+    function printReport(title, data, vMap = {}) {
+        const win = window.open('', '_blank');
+        win.document.write(`<html><head><title>${title}</title><style>body{font-family:sans-serif;padding:30px;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:12px;}th{background:#eee;}</style></head><body><h1>${title}</h1><p>Generated: ${new Date().toLocaleString()}</p><table><thead><tr><th>Date</th><th>Name</th><th>Email</th><th>Printer</th><th>Time</th><th>Notes</th>${Object.keys(vMap).length ? '<th>Misses</th>' : ''}</tr></thead><tbody>${data.map(r=>`<tr><td>${r.date}</td><td>${r.name}</td><td>${r.email}</td><td>${r.printer}</td><td>${r.time}</td><td>${r.notes||''}</td>${Object.keys(vMap).length ? '<td>'+(vMap[r.email]||0)+'</td>' : ''}</tr>`).join('')}</tbody></table><script>window.print();<\/script></body></html>`);
+        win.document.close();
+    }
+</script>
 </body>
 </html>
