@@ -31,6 +31,21 @@
         .cancel-btn { background: #fee2e2; color: #b91c1c; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 700; font-size: 0.75rem; cursor: pointer; }
         #form-container, #manage-view { display: none; }
         @media (max-width: 480px) { .time-grid { grid-template-columns: repeat(2, 1fr); } }
+        .spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 0.8s linear infinite;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
     </style>
 </head>
 <body>
@@ -272,52 +287,59 @@
         }
 
         async function handleConfirm() {
+    // 1. Get current values
     const name = document.getElementById('user-name').value.trim();
     const email = document.getElementById('user-email').value.trim();
-    if (!name || !email) return alert("Please fill in your details.");
-
-            // NEW: Validation for SCARA
-    if (!name || !email) return alert("Please fill in your details.");
-    if (printer === "SCARA" && !group) {
-        return alert("⚠️ SCARA Requirement: You must list all group members to book this machine.");
-    }
-            
+    const group = document.getElementById('group-members').value.trim(); 
     const btn = document.getElementById('submit-btn'); 
+
+    // 2. Validation Checks
+    if (!name || !email) return alert("Please fill in your details.");
+    
+    // SCARA specific rule: Must have group members
+    if (printer === "SCARA" && !group) {
+        return alert("⚠️ SCARA Requirement: You must list all group members (e.g. Adam, Eric, Steve) to book this machine.");
+    }
+    
+    // 3. UI Feedback (Lock button and show spinner)
     btn.disabled = true; 
-    btn.innerText = "Verifying with server...";
+    btn.style.opacity = "0.7";
+    btn.style.cursor = "not-allowed";
+    btn.innerHTML = `<span class="spinner"></span> Verifying Group Names...`;
 
     const payload = { 
         action: 'book', 
         name, 
         email, 
         printer, 
-        date: dateInput.value, 
+        date: document.getElementById('date-picker').value, 
         time: selectedIndices.map(i => (printer === "Super7" ? super7Times : scaraTimes)[i]).join(', '), 
-        group: document.getElementById('group-members').value || "" 
+        group: group
     };
 
     try {
         const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
         const result = await response.json(); 
-        
-        // DEBUG: Look at your browser console (F12) to see this
-        console.log("Server Response:", result);
 
         if (result.status === "success") {
             alert("Reservation Confirmed!");
-            window.location.href = "index.html";
+            window.location.href = "index.html"; // Redirect back to home
         } else {
-            // This is where the magic happens
+            // This catches the "One booking per group" error from the server
             alert("⚠️ BOOKING STOPPED: " + result.message);
+            
+            // Reset button so they can fix the names and try again
             btn.disabled = false;
-            btn.innerText = "Confirm Booking";
-            renderGrid(); // This will turn the slot red so they see it's gone
+            btn.style.opacity = "1";
+            btn.style.cursor = "pointer";
+            btn.innerText = "Complete Reservation";
+            renderGrid(); // Refresh to show if someone else grabbed the slot
         }
     } catch (e) { 
         console.error("Fetch Error:", e);
         alert("Success! (Wait, if your sheet didn't update, please refresh and try again)."); 
-        btn.disabled = false; 
-        btn.innerText = "Confirm Booking";
+        btn.disabled = false;
+        btn.innerText = "Complete Reservation";
     }
 }
 
