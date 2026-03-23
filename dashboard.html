@@ -231,17 +231,27 @@
 
     // 6. REPORTING
     async function fetchAndReportCancelled() {
-        document.getElementById('status-msg').innerText = "Fetching Archive...";
-        try {
-            const res = await fetch(`${SCRIPT_URL}?action=getHistory`); // This retrieves the full history including potentially cancelled notes if you move them
-            const data = await res.json();
-            // Note: If you have a separate getArchive action in Apps Script, use that instead.
-            printReport("Canceled Appointments", data.filter(b => b.status === "Cancelled"));
-            document.getElementById('status-msg').innerText = "Synced";
-        } catch(e) {
-            alert("Error fetching archive.");
+    const statusMsg = document.getElementById('status-msg');
+    statusMsg.innerText = "Fetching Archive...";
+    
+    try {
+        const res = await fetch(`${SCRIPT_URL}?action=getArchive`);
+        const archiveData = await res.json();
+        
+        if (!archiveData || archiveData.length === 0) { 
+            alert("No canceled records found in the Archive sheet."); 
+            statusMsg.innerText = "Synced";
+            return; 
         }
+        
+        // This triggers the print window
+        printReport("Canceled Appointment Archive", archiveData);
+        statusMsg.innerText = "Synced";
+    } catch(e) { 
+        console.error(e);
+        statusMsg.innerText = "Error Fetching Archive"; 
     }
+}
 
     function generateReport(type) {
         const violationMap = {};
