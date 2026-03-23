@@ -101,24 +101,25 @@
 
     // 3. UI UPDATES (PRINTER STATUS)
     function updateDots() {
-        ['Super7', 'SCARA'].forEach(p => {
-            // Check the lock - if we are currently toggling this printer, 
-            // do not let the background refresh change its color yet.
-            if (isUpdating[p]) return; 
+    ['Super7', 'SCARA'].forEach(p => {
+        // Use the correct variable name: isUpdating
+        if (isUpdating[p]) return; 
 
-            const state = p === 'Super7' ? statuses.super7 : statuses.scara;
-            const dot = document.getElementById(`dot-${p}`);
-            const btn = document.getElementById(`btn-${p}`);
+        const state = p === 'Super7' ? statuses.super7 : statuses.scara;
+        const dot = document.getElementById(`dot-${p}`);
+        const btn = document.getElementById(`btn-${p}`);
 
-            if (dot) dot.className = 'status-dot ' + state.toLowerCase();
-            
-            if (btn) {
-                btn.innerText = state === "Online" ? "Set Offline" : "Set Online";
-                // Green-ish for Online, Red-ish for Offline
-                btn.style.backgroundColor = state === "Online" ? "#fee2e2" : "#d1fae5";
-            }
-        });
-    }
+        if (dot) {
+            dot.className = 'status-dot ' + (state ? state.toLowerCase() : 'offline');
+        }
+        
+        if (btn) {
+            btn.innerText = state === "Online" ? "Set Offline" : "Set Online";
+            // Light Red for Online (Set Offline), Light Green for Offline (Set Online)
+            btn.style.backgroundColor = state === "Online" ? "#fee2e2" : "#d1fae5";
+        }
+    });
+}
 
     async function toggleStatus(p) {
         const statusMsg = document.getElementById('status-msg');
