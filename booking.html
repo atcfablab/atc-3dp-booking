@@ -239,8 +239,22 @@
         
         function handleSelection(idx, day) {
             if (printer === "SCARA") {
-                selectedIndices = selectedIndices.includes(idx) ? [] : [idx];
+        // NEW SCARA LOGIC: Allow up to 2 staggered slots
+        if (selectedIndices.includes(idx)) {
+            // If already selected, remove it
+            selectedIndices = selectedIndices.filter(i => i !== idx);
+        } else {
+            if (selectedIndices.length < 2) {
+                // If we have room, add the new selection
+                selectedIndices.push(idx);
             } else {
+                // If already at 2, swap the oldest for the newest
+                selectedIndices.shift();
+                selectedIndices.push(idx);
+            }
+        }
+        selectedIndices.sort((a, b) => a - b);
+    } else {
                 const isMonday = (day === 1);
                 if (isMonday && idx === 0) {
                     selectedIndices = selectedIndices.includes(0) ? [] : [0, 1];
