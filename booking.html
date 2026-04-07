@@ -239,18 +239,25 @@
         
         function handleSelection(idx, day) {
             if (printer === "SCARA") {
-        // NEW SCARA LOGIC: Allow up to 2 staggered slots
         if (selectedIndices.includes(idx)) {
             // If already selected, remove it
             selectedIndices = selectedIndices.filter(i => i !== idx);
         } else {
-            if (selectedIndices.length < 2) {
-                // If we have room, add the new selection
+            if (selectedIndices.length === 0) {
+                // First selection is always allowed
                 selectedIndices.push(idx);
+            } else if (selectedIndices.length === 1) {
+                // Check if the new click is immediately next to the existing one
+                const firstIdx = selectedIndices[0];
+                if (Math.abs(firstIdx - idx) === 1) {
+                    selectedIndices.push(idx);
+                } else {
+                    // If not consecutive, jump to the new selection instead
+                    selectedIndices = [idx];
+                }
             } else {
-                // If already at 2, swap the oldest for the newest
-                selectedIndices.shift();
-                selectedIndices.push(idx);
+                // If 2 are already selected, reset to the new single selection
+                selectedIndices = [idx];
             }
         }
         selectedIndices.sort((a, b) => a - b);
