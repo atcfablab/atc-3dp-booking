@@ -32,20 +32,20 @@
         #form-container, #manage-view { display: none; }
         @media (max-width: 480px) { .time-grid { grid-template-columns: repeat(2, 1fr); } }
         .spinner {
-    display: inline-block;
-    width: 14px;
-    height: 14px;
-    border: 2px solid rgba(255,255,255,.3);
-    border-radius: 50%;
-    border-top-color: #fff;
-    animation: spin 0.8s linear infinite;
-    margin-right: 10px;
-    vertical-align: middle;
-}
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
 
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -165,7 +165,6 @@
                 return;
             }
 
-            // Update the error message below to reflect the new days
             if (!isStandardDay && !isSpecialOpen) {
                 grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>The Lab is closed. Please select a weekday.</div>";
                 document.getElementById('slot-container').style.display = "block";
@@ -173,7 +172,7 @@
                 return;
             }
 
-            // 2. If we passed those checks, NOW we show "Checking availability"
+            // 2. Load availability
             grid.innerHTML = "Checking availability..."; 
             document.getElementById('slot-container').style.display = "block";
             document.getElementById('form-container').style.display = "none";
@@ -195,7 +194,7 @@
                 }
 
                 grid.innerHTML = "";
-                const times = (printer === "Super9") ? super7Times : scaraTimes;
+                const times = (printer === "Super9") ? super9Times : scaraTimes;
                 
                 times.forEach((timeStr, i) => {
                     // Monday Super9 logic ONLY applies on actual Mondays (day 1)
@@ -239,29 +238,24 @@
         
         function handleSelection(idx, day) {
             if (printer === "SCARA") {
-        if (selectedIndices.includes(idx)) {
-            // If already selected, remove it
-            selectedIndices = selectedIndices.filter(i => i !== idx);
-        } else {
-            if (selectedIndices.length === 0) {
-                // First selection is always allowed
-                selectedIndices.push(idx);
-            } else if (selectedIndices.length === 1) {
-                // Check if the new click is immediately next to the existing one
-                const firstIdx = selectedIndices[0];
-                if (Math.abs(firstIdx - idx) === 1) {
-                    selectedIndices.push(idx);
+                if (selectedIndices.includes(idx)) {
+                    selectedIndices = selectedIndices.filter(i => i !== idx);
                 } else {
-                    // If not consecutive, jump to the new selection instead
-                    selectedIndices = [idx];
+                    if (selectedIndices.length === 0) {
+                        selectedIndices.push(idx);
+                    } else if (selectedIndices.length === 1) {
+                        const firstIdx = selectedIndices[0];
+                        if (Math.abs(firstIdx - idx) === 1) {
+                            selectedIndices.push(idx);
+                        } else {
+                            selectedIndices = [idx];
+                        }
+                    } else {
+                        selectedIndices = [idx];
+                    }
                 }
+                selectedIndices.sort((a, b) => a - b);
             } else {
-                // If 2 are already selected, reset to the new single selection
-                selectedIndices = [idx];
-            }
-        }
-        selectedIndices.sort((a, b) => a - b);
-    } else {
                 const isMonday = (day === 1);
                 if (isMonday && idx === 0) {
                     selectedIndices = selectedIndices.includes(0) ? [] : [0, 1];
@@ -308,61 +302,54 @@
         }
 
         async function handleConfirm() {
-    // 1. Get current values
-    const name = document.getElementById('user-name').value.trim();
-    const email = document.getElementById('user-email').value.trim();
-    const group = document.getElementById('group-members').value.trim(); 
-    const btn = document.getElementById('submit-btn'); 
+            const name = document.getElementById('user-name').value.trim();
+            const email = document.getElementById('user-email').value.trim();
+            const group = document.getElementById('group-members').value.trim(); 
+            const btn = document.getElementById('submit-btn'); 
 
-    // 2. Validation Checks
-    if (!name || !email) return alert("Please fill in your details.");
-    
-    // SCARA specific rule: Must have group members
-    if (printer === "SCARA" && !group) {
-        return alert("⚠️ SCARA Requirement: You must list all group members (e.g. Adam, Eric, Steve) to book this machine.");
-    }
-    
-    // 3. UI Feedback (Lock button and show spinner)
-    btn.disabled = true; 
-    btn.style.opacity = "0.7";
-    btn.style.cursor = "not-allowed";
-    btn.innerHTML = `<span class="spinner"></span> Verifying Group Names...`;
-
-    const payload = { 
-        action: 'book', 
-        name, 
-        email, 
-        printer, 
-        date: document.getElementById('date-picker').value, 
-        time: selectedIndices.map(i => (printer === "Super9" ? super7Times : scaraTimes)[i]).join(', '), 
-        group: group
-    };
-
-    try {
-        const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-        const result = await response.json(); 
-
-        if (result.status === "success") {
-            alert("Reservation Confirmed!");
-            window.location.href = "index.html"; // Redirect back to home
-        } else {
-            // This catches the "One booking per group" error from the server
-            alert("⚠️ BOOKING STOPPED: " + result.message);
+            if (!name || !email) return alert("Please fill in your details.");
             
-            // Reset button so they can fix the names and try again
-            btn.disabled = false;
-            btn.style.opacity = "1";
-            btn.style.cursor = "pointer";
-            btn.innerText = "Complete Reservation";
-            renderGrid(); // Refresh to show if someone else grabbed the slot
+            if (printer === "SCARA" && !group) {
+                return alert("⚠️ SCARA Requirement: You must list all group members (e.g. Adam, Eric, Steve) to book this machine.");
+            }
+            
+            btn.disabled = true; 
+            btn.style.opacity = "0.7";
+            btn.style.cursor = "not-allowed";
+            btn.innerHTML = `<span class="spinner"></span> Verifying Group Names...`;
+
+            const payload = { 
+                action: 'book', 
+                name, 
+                email, 
+                printer, 
+                date: document.getElementById('date-picker').value, 
+                time: selectedIndices.map(i => (printer === "Super9" ? super9Times : scaraTimes)[i]).join(', '), 
+                group: group
+            };
+
+            try {
+                const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+                const result = await response.json(); 
+
+                if (result.status === "success") {
+                    alert("Reservation Confirmed!");
+                    window.location.href = "index.html";
+                } else {
+                    alert("⚠️ BOOKING STOPPED: " + result.message);
+                    btn.disabled = false;
+                    btn.style.opacity = "1";
+                    btn.style.cursor = "pointer";
+                    btn.innerText = "Complete Reservation";
+                    renderGrid();
+                }
+            } catch (e) { 
+                console.error("Fetch Error:", e);
+                alert("Success! (Wait, if your sheet didn't update, please refresh and try again)."); 
+                btn.disabled = false;
+                btn.innerText = "Complete Reservation";
+            }
         }
-    } catch (e) { 
-        console.error("Fetch Error:", e);
-        alert("Success! (Wait, if your sheet didn't update, please refresh and try again)."); 
-        btn.disabled = false;
-        btn.innerText = "Complete Reservation";
-    }
-}
 
         async function lookupBookings() {
             const n = document.getElementById('lookup-name').value.trim();
