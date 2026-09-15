@@ -23,7 +23,7 @@
         td { padding: 15px; font-size: 0.9rem; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
         .notes-input { width: 100%; border: 1px solid transparent; padding: 8px; border-radius: 6px; background: #f9fafb; font-size: 0.85rem; }
         .tag { padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
-        .tag-super7 { background: #e0f2fe; color: #0369a1; }
+        .tag-super9 { background: #e0f2fe; color: #0369a1; }
         .tag-scara { background: #fef3c7; color: #92400e; }
         .violation-row { background-color: #fff1f2 !important; }
         .flag-text { color: #e11d48; font-weight: 800; }
@@ -41,7 +41,7 @@
             </div>
             
             <div class="status-panel">
-                <div class="printer-card"><div id="dot-Super7" class="status-dot"></div><div><b>Super7</b> <button class="toggle-btn" id="btn-Super7" onclick="toggleStatus('Super7')">Loading...</button></div></div>
+                <div class="printer-card"><div id="dot-Super9" class="status-dot"></div><div><b>Super9</b> <button class="toggle-btn" id="btn-Super9" onclick="toggleStatus('Super9')">Loading...</button></div></div>
                 <div class="printer-card"><div id="dot-SCARA" class="status-dot"></div><div><b>SCARA</b> <button class="toggle-btn" id="btn-SCARA" onclick="toggleStatus('SCARA')">Loading...</button></div></div>
             </div>
 
@@ -63,12 +63,11 @@
 
     <script>
     // 1. GLOBAL SETTINGS & LOCKS
-    // We use this to prevent the background sync from overwriting our manual clicks
-    let isUpdating = { Super7: false, SCARA: false };
+    let isUpdating = { Super9: false, SCARA: false };
     
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbweWbXj7Ga2Ns-DcfAboS7mKFkNCGGS83I8qrnnioaUxWlOwZvqKzZQH_ybK88Mz849OQ/exec"; 
     let allBookings = [];
-    let statuses = { super7: "Online", scara: "Online" };
+    let statuses = { super9: "Online", scara: "Online" };
 
     function checkPass() {
         if (document.getElementById('pass-field').value === "ATC_SPRING_2026") {
@@ -101,38 +100,33 @@
 
     // 3. UI UPDATES (PRINTER STATUS)
     function updateDots() {
-    ['Super7', 'SCARA'].forEach(p => {
-        // Use the correct variable name: isUpdating
-        if (isUpdating[p]) return; 
+        ['Super9', 'SCARA'].forEach(p => {
+            if (isUpdating[p]) return; 
 
-        const state = p === 'Super7' ? statuses.super7 : statuses.scara;
-        const dot = document.getElementById(`dot-${p}`);
-        const btn = document.getElementById(`btn-${p}`);
+            const state = p === 'Super9' ? statuses.super9 : statuses.scara;
+            const dot = document.getElementById(`dot-${p}`);
+            const btn = document.getElementById(`btn-${p}`);
 
-        if (dot) {
-            dot.className = 'status-dot ' + (state ? state.toLowerCase() : 'offline');
-        }
-        
-        if (btn) {
-            btn.innerText = state === "Online" ? "Set Offline" : "Set Online";
-            // Light Red for Online (Set Offline), Light Green for Offline (Set Online)
-            btn.style.backgroundColor = state === "Online" ? "#fee2e2" : "#d1fae5";
-        }
-    });
-}
+            if (dot) {
+                dot.className = 'status-dot ' + (state ? state.toLowerCase() : 'offline');
+            }
+            
+            if (btn) {
+                btn.innerText = state === "Online" ? "Set Offline" : "Set Online";
+                btn.style.backgroundColor = state === "Online" ? "#fee2e2" : "#d1fae5";
+            }
+        });
+    }
 
     async function toggleStatus(p) {
         const statusMsg = document.getElementById('status-msg');
         
-        // 1. Lock the printer so updateDots() ignores it for a moment
         isUpdating[p] = true;
 
-        // 2. Determine current state and flip it
         const dot = document.getElementById(`dot-${p}`);
         const isOnline = dot.classList.contains('online');
         const nextStatus = isOnline ? "Offline" : "Online";
         
-        // 3. Update Visuals INSTANTLY
         dot.className = 'status-dot ' + nextStatus.toLowerCase();
         const btn = document.getElementById(`btn-${p}`);
         if (btn) {
@@ -142,14 +136,12 @@
 
         statusMsg.innerText = `Updating ${p}...`;
 
-        // 4. Send to Google (Background)
         fetch(SCRIPT_URL, { 
             method: 'POST', 
             mode: 'no-cors',
             body: JSON.stringify({ action: 'togglePrinter', printer: p, status: nextStatus }) 
         });
 
-        // 5. Release the lock after 4 seconds and refresh data
         setTimeout(() => {
             isUpdating[p] = false;
             loadData(); 
@@ -231,27 +223,26 @@
 
     // 6. REPORTING
     async function fetchAndReportCancelled() {
-    const statusMsg = document.getElementById('status-msg');
-    statusMsg.innerText = "Fetching Archive...";
-    
-    try {
-        const res = await fetch(`${SCRIPT_URL}?action=getArchive`);
-        const archiveData = await res.json();
+        const statusMsg = document.getElementById('status-msg');
+        statusMsg.innerText = "Fetching Archive...";
         
-        if (!archiveData || archiveData.length === 0) { 
-            alert("No canceled records found in the Archive sheet."); 
+        try {
+            const res = await fetch(`${SCRIPT_URL}?action=getArchive`);
+            const archiveData = await res.json();
+            
+            if (!archiveData || archiveData.length === 0) { 
+                alert("No canceled records found in the Archive sheet."); 
+                statusMsg.innerText = "Synced";
+                return; 
+            }
+            
+            printReport("Canceled Appointment Archive", archiveData);
             statusMsg.innerText = "Synced";
-            return; 
+        } catch(e) { 
+            console.error(e);
+            statusMsg.innerText = "Error Fetching Archive"; 
         }
-        
-        // This triggers the print window
-        printReport("Canceled Appointment Archive", archiveData);
-        statusMsg.innerText = "Synced";
-    } catch(e) { 
-        console.error(e);
-        statusMsg.innerText = "Error Fetching Archive"; 
     }
-}
 
     function generateReport(type) {
         const violationMap = {};
