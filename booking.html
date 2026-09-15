@@ -85,14 +85,14 @@
     <script>
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbweWbXj7Ga2Ns-DcfAboS7mKFkNCGGS83I8qrnnioaUxWlOwZvqKzZQH_ybK88Mz849OQ/exec"; 
         const params = new URLSearchParams(window.location.search);
-        const printer = params.get('printer') || "Super7";
+        const printer = params.get('printer') || "Super9";
         let selectedIndices = [];
 
-        const super7Times = ["09:00 AM - 10:00 AM", "10:00 AM - 10:30 AM", "10:30 AM - 11:00 AM", "11:00 AM - 11:30 AM", "11:30 AM - 12:00 PM", "01:00 PM - 01:30 PM", "01:30 PM - 02:00 PM", "02:00 PM - 02:30 PM", "02:30 PM - 03:00 PM", "03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
+        const super9Times = ["09:00 AM - 10:00 AM", "10:00 AM - 10:30 AM", "10:30 AM - 11:00 AM", "11:00 AM - 11:30 AM", "11:30 AM - 12:00 PM", "01:00 PM - 01:30 PM", "01:30 PM - 02:00 PM", "02:00 PM - 02:30 PM", "02:30 PM - 03:00 PM", "03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
         const scaraTimes = ["09:00 AM - 11:00 AM", "10:00 AM - 12:00 PM", "01:00 PM - 03:00 PM", "02:00 PM - 04:00 PM"];
 
         const rules = {
-            "Super7": [
+            "Super9": [
                 "<strong>Clay Preparation is required every Monday from 9:00 - 10:00 AM.</strong> This task requires two individual students to sign up independently. Each student must book their own slot to help load clay for the week. If these two spots are not filled, the class will not have clay for printing. These two students will also automatically receive printing time from 10:00 - 10:30 AM on that day. They are welcome to book the following 30 minute slot from 10:30 - 11:00 AM if they would like a full hour of printing between the two. This can be coordinated as a group.",
                 "<strong>Printing sessions are 30-minute increments.</strong>",
                 "<strong>Students may book 30 or 60 minutes per session.</strong>",
@@ -187,7 +187,7 @@
                 const statusData = await statusRes.json();
                 const allBookings = await historyRes.json();
 
-                const isOnline = (printer === "Super7") ? statusData.super7 === "Online" : statusData.scara === "Online";
+                const isOnline = (printer === "Super9") ? statusData.super9 === "Online" : statusData.scara === "Online";
                 
                 if (!isOnline) {
                     grid.innerHTML = `<div style="grid-column: 1/-1; background: #fee2e2; color: #b91c1c; padding: 30px; border-radius: 15px; font-weight: 700;">⚠️ This printer is currently OFFLINE for maintenance.</div>`;
@@ -195,11 +195,11 @@
                 }
 
                 grid.innerHTML = "";
-                const times = (printer === "Super7") ? super7Times : scaraTimes;
+                const times = (printer === "Super9") ? super7Times : scaraTimes;
                 
                 times.forEach((timeStr, i) => {
-                    // Monday Super7 logic ONLY applies on actual Mondays (day 1)
-                    if (printer === "Super7" && day === 1 && i === 1) return;
+                    // Monday Super9 logic ONLY applies on actual Mondays (day 1)
+                    if (printer === "Super9" && day === 1 && i === 1) return;
                     
                     const slot = document.createElement('div');
                     slot.className = 'time-slot'; 
@@ -210,7 +210,7 @@
                     ).length;
 
                     // Clay prep logic ONLY applies on actual Mondays (day 1)
-                    const isClayPrepSlot = (printer === "Super7" && day === 1 && i === 0);
+                    const isClayPrepSlot = (printer === "Super9" && day === 1 && i === 0);
                     const maxCapacity = isClayPrepSlot ? 2 : 1;
                     const isFull = bookingCount >= maxCapacity;
 
@@ -285,9 +285,9 @@
         function updateVisuals(day) {
             const grid = document.getElementById('time-grid');
             const isMonday = (day === 1);
-            const clayActive = selectedIndices.includes(0) && printer === "Super7" && isMonday;
+            const clayActive = selectedIndices.includes(0) && printer === "Super9" && isMonday;
             let autoSlot = document.getElementById('slot-1');
-            if (isMonday && printer === "Super7") {
+            if (isMonday && printer === "Super9") {
                 if (clayActive && !autoSlot) {
                     autoSlot = document.createElement('div'); autoSlot.className = 'time-slot selected'; autoSlot.id = 'slot-1'; autoSlot.innerText = "10:00 AM - 10:30 AM";
                     grid.insertBefore(autoSlot, grid.children[1]);
@@ -334,7 +334,7 @@
         email, 
         printer, 
         date: document.getElementById('date-picker').value, 
-        time: selectedIndices.map(i => (printer === "Super7" ? super7Times : scaraTimes)[i]).join(', '), 
+        time: selectedIndices.map(i => (printer === "Super9" ? super7Times : scaraTimes)[i]).join(', '), 
         group: group
     };
 
