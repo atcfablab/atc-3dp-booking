@@ -250,22 +250,28 @@
         }
 
         function updateVisuals(day) {
-            const grid = document.getElementById('time-grid');
-            const isMonday = (day === 1);
-            const clayActive = selectedIndices.includes(0) && printer === "Super9" && isMonday;
-            let autoSlot = document.getElementById('slot-1');
-            if (isMonday && printer === "Super9") {
-                if (clayActive && !autoSlot) {
-                    autoSlot = document.createElement('div'); autoSlot.className = 'time-slot selected'; autoSlot.id = 'slot-1'; autoSlot.innerText = "10:00 AM - 10:30 AM";
-                    grid.insertBefore(autoSlot, grid.children[1]);
-                } else if (!clayActive && autoSlot) autoSlot.remove();
-            }
-            document.querySelectorAll('.time-slot').forEach(slot => {
-                const id = parseInt(slot.id.replace('slot-', ''));
-                slot.classList.toggle('selected', selectedIndices.includes(id));
-            });
-            document.getElementById('form-container').style.display = selectedIndices.length > 0 ? "block" : "none";
-        }
+  // Update slot styling
+  const times = (printer === "Super9") ? super9Times : scaraTimes;
+  times.forEach((_, i) => {
+    const slot = document.getElementById(`slot-${i}`);
+    if (slot && !slot.classList.contains('reserved') && !slot.classList.contains('locked')) {
+      slot.className = selectedIndices.includes(i) ? 'time-slot selected' : 'time-slot';
+    }
+  });
+
+  // Show/Hide Form Container based on selection
+  if (selectedIndices.length > 0) {
+    document.getElementById('form-container').style.display = 'block';
+
+    // ALWAYS SHOW group field for both Super9 and SCARA
+    const groupContainer = document.getElementById('group-container'); // or your group input's wrapper ID
+    if (groupContainer) {
+      groupContainer.style.display = 'block';
+    }
+  } else {
+    document.getElementById('form-container').style.display = 'none';
+  }
+}
 
         function clearAll() { selectedIndices = []; updateVisuals(); document.getElementById('form-container').style.display = "none"; }
 
@@ -275,54 +281,70 @@
         }
 
         async function handleConfirm() {
-            const name = document.getElementById('user-name').value.trim();
-            const email = document.getElementById('user-email').value.trim();
-            const group = document.getElementById('group-members').value.trim(); 
-            const btn = document.getElementById('submit-btn'); 
+    const name = document.getElementById('user-name').value.trim();
+    const email = document.getElementById('user-email').value.trim();
+    const groupInput = document.getElementById('group-members') ? document.getElementById('group-members').value.trim() : "";
+    const btn = document.getElementById('submit-btn'); 
 
-            if (!name || !email) return alert("Please fill in your details.");
-            
-            if (printer === "SCARA" && !group) {
-                return alert("⚠️ SCARA Requirement: You must list all group members (e.g. Adam, Eric, Steve) to book this machine.");
-            }
-            
-            btn.disabled = true; 
-            btn.style.opacity = "0.7";
-            btn.style.cursor = "not-allowed";
-            btn.innerHTML = `<span class="spinner"></span> Verifying Group Names...`;
+    if (!name || !email) return alert("Please fill in your details.");
+    
+    // --- GROUP MEMBER VALIDATION (First and Last Name Check) ---
+    if (groupInput.length > 0) {
+        // Split by comma
+        const members = groupInput.split(',').map(m => m.trim()).filter(m => m.length > 0);
 
-            const payload = { 
-                action: 'book', 
-                name, 
-                email, 
-                printer, 
-                date: document.getElementById('date-picker').value, 
-                time: selectedIndices.map(i => (printer === "Super9" ? super9Times : scaraTimes)[i]).join(', '), 
-                group: group
-            };
+        // Verify each entry has at least a First and Last name
+        const isValid = members.every(member => {
+            const nameParts = member.split(/\s+/);
+            return nameParts.length >= 2;
+        });
 
-            try {
-                const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-                const result = await response.json(); 
-
-                if (result.status === "success") {
-                    alert("Reservation Confirmed!");
-                    window.location.href = "index.html";
-                } else {
-                    alert("⚠️ BOOKING STOPPED: " + result.message);
-                    btn.disabled = false;
-                    btn.style.opacity = "1";
-                    btn.style.cursor = "pointer";
-                    btn.innerText = "Complete Reservation";
-                    renderGrid();
-                }
-            } catch (e) { 
-                console.error("Fetch Error:", e);
-                alert("Success! (Wait, if your sheet didn't update, please refresh and try again)."); 
-                btn.disabled = false;
-                btn.innerText = "Complete Reservation";
-            }
+        if (!isValid) {
+            return alert("Please enter full first and last names for all group members, separated by commas.\n\nExample: Jane Doe, John Smith");
         }
+    }
+
+    // UI Feedback (Lock button and show loading state)
+    btn.disabled = true; 
+    btn.style.opacity = "0.7";
+    btn.style.cursor = "not-allowed";
+    btn.innerHTML = `<span class="spinner"></span> Verifying Reservation...`;
+
+    const payload = { 
+        action: 'book', 
+        name, 
+        email, 
+        printer, 
+        date: dateInput.value, 
+        time: selectedIndices.map(i => (printer === "Super9" ? super9Times : scaraTimes)[i]).join(', '), 
+        group: groupInput
+    };
+
+    try {
+        const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+        const result = await response.json(); 
+
+        if (result.status === "success") {
+            alert("Reservation Confirmed!");
+            window.location.href = "index.html";
+        } else {
+            alert("⚠️ BOOKING STOPPED: " + result.message);
+            
+            btn.disabled = false;
+            btn.style.opacity = "1";
+            btn.style.cursor = "pointer";
+            btn.innerText = "Complete Reservation";
+            renderGrid();
+        }
+    } catch (e) { 
+        console.error("Fetch Error:", e);
+        alert("Error submitting booking. Please refresh and try again."); 
+        btn.disabled = false;
+        btn.style.opacity = "1";
+        btn.style.cursor = "pointer";
+        btn.innerText = "Complete Reservation";
+    }
+}
 
         async function lookupBookings() {
             const n = document.getElementById('lookup-name').value.trim();
