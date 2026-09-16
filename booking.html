@@ -454,43 +454,52 @@ function clearAll() {
         }
 
         async function lookupBookings() {
-            const n = document.getElementById('lookup-name').value.trim();
-            const e = document.getElementById('lookup-email').value.trim().toLowerCase();
-            const list = document.getElementById('results-list');
-            if (!n || !e) return alert("Enter both name and email.");
+    const n = document.getElementById('lookup-name').value.trim().toLowerCase();
+    const e = document.getElementById('lookup-email').value.trim().toLowerCase();
+    const list = document.getElementById('results-list');
+    if (!n || !e) return alert("Enter both name and email.");
+    
+    list.innerHTML = "<strong>Searching...</strong>";
+    
+    try {
+        const res = await fetch(`${SCRIPT_URL}?action=getHistory`);
+        const all = await res.json();
+        
+        // Match against primary booker OR partner details in the group field
+        const filtered = all.filter(b => {
+            const primaryNameMatch = b.name && b.name.toLowerCase().includes(n);
+            const primaryEmailMatch = b.email && b.email.toLowerCase() === e;
             
-            list.innerHTML = "<strong>Searching...</strong>";
+            const groupInfo = (b.group || "").toLowerCase();
+            const partnerNameMatch = groupInfo.includes(n);
+            const partnerEmailMatch = groupInfo.includes(e);
             
-            try {
-                const res = await fetch(`${SCRIPT_URL}?action=getHistory`);
-                const all = await res.json();
-                const filtered = all.filter(b => 
-                    (b.email && b.email.toLowerCase() === e) || 
-                    (b.name && b.name.toLowerCase().includes(n.toLowerCase()))
-                );
-                
-                if (filtered.length === 0) {
-                    list.innerHTML = "<div style='color:red;'>No active bookings found.</div>";
-                    return;
-                }
-                
-                list.innerHTML = filtered.map(b => {
-                    const locked = isWithinLockout(b.date, b.time.split(' - ')[0]);
-                    return `<div class="booking-item">
-                        <div>
-                            <strong>${b.printer}</strong><br>
-                            ${b.date} @ ${b.time}
-                        </div>
-                        <div>
-                            ${locked ? '<span style="color:gray; font-size:0.7rem;">LOCKED</span>' : 
-                            `<button class="cancel-btn" onclick="cancelBooking('${b.id}','${b.date}','${b.name.replace(/'/g, "\\'")}','${b.printer}','${b.time}')">Cancel</button>`}
-                        </div>
-                    </div>`;
-                }).join('');
-            } catch (err) {
-                list.innerHTML = "Error connecting to server.";
-            }
+            return (primaryNameMatch || partnerNameMatch) && (primaryEmailMatch || partnerEmailMatch);
+        });
+        
+        if (filtered.length === 0) {
+            list.innerHTML = "<div style='color:red;'>No active bookings found for that name and email.</div>";
+            return;
         }
+        
+        list.innerHTML = filtered.map(b => {
+            const locked = isWithinLockout(b.date, b.time.split(' - ')[0]);
+            const partnerInfo = b.group ? `<br><small style="color:#6b7280;">Partner: ${b.group}</small>` : '';
+            return `<div class="booking-item">
+                <div>
+                    <strong>${b.printer}</strong><br>
+                    ${b.date} @ ${b.time}${partnerInfo}
+                </div>
+                <div>
+                    ${locked ? '<span style="color:gray; font-size:0.7rem;">LOCKED</span>' : 
+                    `<button class="cancel-btn" onclick="cancelBooking('${b.id}','${b.date}','${b.name.replace(/'/g, "\\'")}','${b.printer}','${b.time}')">Cancel</button>`}
+                </div>
+            </div>`;
+        }).join('');
+    } catch (err) {
+        list.innerHTML = "Error connecting to server.";
+    }
+}
 
         async function cancelBooking(id, date, name, printer, time) {
             if (!confirm("Are you sure you want to cancel this reservation?")) return;
