@@ -15,6 +15,13 @@
         .rules-card ul { padding-left: 18px; margin: 0; color: #92400e; font-size: 0.85rem; line-height: 1.5; }
         .rules-card li { margin-bottom: 12px; }
         input[type="date"], .text-input { width: 100%; padding: 15px; border-radius: 12px; border: 1px solid #e5e7eb; box-sizing: border-box; margin-bottom: 15px; font-size: 1rem; font-family: inherit; }
+        
+        /* Checkbox & Partner Field Styling */
+        .checkbox-container { display: flex; align-items: center; justify-content: flex-start; gap: 10px; margin-bottom: 15px; text-align: left; font-weight: 600; font-size: 0.95rem; color: #374151; }
+        .checkbox-container input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: #000; }
+        .partner-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 15px 15px 5px 15px; margin-bottom: 15px; text-align: left; display: none; }
+        .partner-box label { font-size: 0.8rem; font-weight: 800; color: #6b7280; text-transform: uppercase; display: block; margin-bottom: 8px; }
+
         .slot-header { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; margin-bottom: 10px; }
         .slot-label { font-size: 0.75rem; font-weight: 800; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; }
         .clear-all { font-size: 0.75rem; font-weight: 700; color: #374151; background: #f3f4f6; border: none; padding: 4px 12px; border-radius: 20px; cursor: pointer; }
@@ -66,7 +73,21 @@
             <div id="form-container">
                 <input type="text" id="user-name" class="text-input" placeholder="Full Name">
                 <input type="email" id="user-email" class="text-input" placeholder="uark-email@uark.edu">
-                <div id="group-container"><input type="text" id="group-members" class="text-input" placeholder="Group Member Names (e.g. Jane Doe, John Smith)"></div>
+                
+                <!-- Partner Option Container -->
+                <div id="group-container">
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="has-partner" onchange="togglePartnerFields()">
+                        <label for="has-partner">I am booking with a partner</label>
+                    </div>
+
+                    <div id="partner-box" class="partner-box">
+                        <label>Partner Information (Max 1 Partner)</label>
+                        <input type="text" id="partner-name" class="text-input" placeholder="Partner Full Name">
+                        <input type="email" id="partner-email" class="text-input" placeholder="partner-email@uark.edu">
+                    </div>
+                </div>
+
                 <button class="primary-btn" id="submit-btn" onclick="handleConfirm()">Complete Reservation</button>
             </div>
             <button class="secondary-btn" onclick="toggleView('manage')">Manage / Cancel Existing Booking</button>
@@ -88,7 +109,6 @@
         const printer = params.get('printer') || "Super9";
         let selectedIndices = [];
 
-        // Time arrays defined per schedule type
         const super9MondayTimes = ["01:00 PM - 02:30 PM", "02:30 PM - 03:00 PM", "03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
         const super9StandardTimes = ["01:00 PM - 01:30 PM", "01:30 PM - 02:00 PM", "02:00 PM - 02:30 PM", "02:30 PM - 03:00 PM", "03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
         const scaraTimes = ["09:00 AM - 11:00 AM", "10:00 AM - 12:00 PM", "01:00 PM - 03:00 PM", "02:00 PM - 04:00 PM"];
@@ -98,7 +118,7 @@
             if (!dateStr) return super9StandardTimes;
             
             const dateObj = new Date(dateStr + 'T00:00:00');
-            const day = dateObj.getDay(); // 1 = Monday
+            const day = dateObj.getDay(); 
             return (day === 1) ? super9MondayTimes : super9StandardTimes;
         }
 
@@ -128,7 +148,6 @@
             ]
         };
 
-        // Initialize Page
         document.getElementById('printer-title').innerText = "Reserve " + printer;
         rules[printer].forEach(text => {
             const li = document.createElement('li'); li.innerHTML = text;
@@ -138,6 +157,11 @@
         const dateInput = document.getElementById('date-picker');
         dateInput.setAttribute('min', new Date().toISOString().split('T')[0]);
         dateInput.onchange = () => renderGrid();
+
+        function togglePartnerFields() {
+            const hasPartner = document.getElementById('has-partner').checked;
+            document.getElementById('partner-box').style.display = hasPartner ? 'block' : 'none';
+        }
 
         function isWithinLockout(dateStr, timeStr) {
             const nowInCentral = new Date(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', hour12: false, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(new Date()));
@@ -157,7 +181,7 @@
             if (!selectedDate) return;
 
             const dateObj = new Date(selectedDate + 'T00:00:00');
-            const day = dateObj.getDay(); // 1 = Monday
+            const day = dateObj.getDay();
 
             grid.innerHTML = "Checking availability...";
             document.getElementById('slot-container').style.display = "block";
@@ -316,8 +340,6 @@
 
             if (selectedIndices.length > 0) {
                 document.getElementById('form-container').style.display = 'block';
-                const groupContainer = document.getElementById('group-container');
-                if (groupContainer) groupContainer.style.display = 'block';
             } else {
                 document.getElementById('form-container').style.display = 'none';
             }
@@ -337,7 +359,9 @@
         async function handleConfirm() {
             const name = document.getElementById('user-name').value.trim();
             const email = document.getElementById('user-email').value.trim().toLowerCase();
-            const groupInput = document.getElementById('group-members') ? document.getElementById('group-members').value.trim() : "";
+            const hasPartner = document.getElementById('has-partner').checked;
+            const partnerName = document.getElementById('partner-name').value.trim();
+            const partnerEmail = document.getElementById('partner-email').value.trim().toLowerCase();
             const btn = document.getElementById('submit-btn'); 
 
             if (!name || !email) return alert("Please fill in both your full name and email.");
@@ -351,16 +375,23 @@
                 return alert("⚠️ Access Restricted: You must use an official @uark.edu email address to complete a booking.");
             }
 
-            if (groupInput.length > 0) {
-                const members = groupInput.split(',').map(m => m.trim()).filter(m => m.length > 0);
-                const isValid = members.every(member => {
-                    const parts = member.split(/\s+/).filter(p => p.length > 0);
-                    return parts.length >= 2;
-                });
-
-                if (!isValid) {
-                    return alert("Please enter full first and last names for all group members, separated by commas.\n\nExample: Jane Doe, John Smith");
+            // Partner Validation
+            let groupInfo = "";
+            if (hasPartner) {
+                if (!partnerName || !partnerEmail) {
+                    return alert("Please fill in both the full name and email address for your partner.");
                 }
+
+                const partnerNameParts = partnerName.split(/\s+/).filter(part => part.length > 0);
+                if (partnerNameParts.length < 2) {
+                    return alert("Please enter your partner's full first and last name (e.g., John Smith).");
+                }
+
+                if (!partnerEmail.endsWith('@uark.edu')) {
+                    return alert("⚠️ Partner Email Restricted: Your partner must have an official @uark.edu email address.");
+                }
+
+                groupInfo = `${partnerName} (${partnerEmail})`;
             }
 
             btn.disabled = true; 
@@ -377,7 +408,7 @@
                 printer, 
                 date: dateInput.value, 
                 time: selectedIndices.map(i => currentTimes[i]).join(', '), 
-                group: groupInput
+                group: groupInfo
             };
 
             try {
