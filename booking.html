@@ -268,85 +268,103 @@ const allBookings = initialData.history;
         }
 
         function handleSelection(idx, day) {
-            const isClayPrep = (printer === "Super9" && day === 1 && idx === 0);
+    const isClayPrep = (printer === "Super9" && day === 1 && idx === 0);
 
-            if (isClayPrep) {
-                if (selectedIndices.includes(0)) {
-                    selectedIndices = [];
-                } else {
-                    selectedIndices = [0];
+    if (isClayPrep) {
+        if (selectedIndices.includes(0)) {
+            selectedIndices = [];
+        } else {
+            selectedIndices = [0];
 
-                    const isSlot1Taken = document.getElementById('slot-1')?.classList.contains('reserved');
-                    const isSlot2Taken = document.getElementById('slot-2')?.classList.contains('reserved');
+            const isSlot1Taken = document.getElementById('slot-1')?.classList.contains('reserved');
+            const isSlot2Taken = document.getElementById('slot-2')?.classList.contains('reserved');
 
-                    let targetSlotIdx = null;
-                    let slotTimeStr = "";
+            let targetSlotIdx = null;
+            let slotTimeStr = "";
 
-                    if (!isSlot1Taken) {
-                        targetSlotIdx = 1;
-                        slotTimeStr = "2:30 PM - 3:00 PM";
-                    } else if (!isSlot2Taken) {
-                        targetSlotIdx = 2;
-                        slotTimeStr = "3:00 PM - 3:30 PM";
-                    }
-
-                    if (targetSlotIdx !== null) {
-                        const acceptAutoBook = confirm(
-                            `You selected Clay Prep (1:00 PM - 2:30 PM).\n\nWould you like to automatically add the next available 30-minute printing slot (${slotTimeStr}) for yourself?`
-                        );
-
-                        if (acceptAutoBook) {
-                            selectedIndices.push(targetSlotIdx);
-                        }
-                    }
-                }
-            } else {
-                if (selectedIndices.includes(0) && day === 1 && printer === "Super9") {
-                    selectedIndices = [];
-                }
-
-                if (selectedIndices.includes(idx)) {
-                    selectedIndices = selectedIndices.filter(i => i !== idx);
-                } else {
-                    if (selectedIndices.length === 0) {
-                        selectedIndices.push(idx);
-                    } else if (selectedIndices.length === 1) {
-                        if (Math.abs(selectedIndices[0] - idx) === 1) {
-                            selectedIndices.push(idx);
-                        } else {
-                            selectedIndices = [idx];
-                        }
-                    } else {
-                        selectedIndices = [idx];
-                    }
-                }
-                selectedIndices.sort((a, b) => a - b);
+            if (!isSlot1Taken) {
+                targetSlotIdx = 1;
+                slotTimeStr = "2:30 PM - 3:00 PM";
+            } else if (!isSlot2Taken) {
+                targetSlotIdx = 2;
+                slotTimeStr = "3:00 PM - 3:30 PM";
             }
 
-            updateVisuals();
+            if (targetSlotIdx !== null) {
+                const acceptAutoBook = confirm(
+                    `You selected Clay Prep (1:00 PM - 2:30 PM).\n\nWould you like to automatically add the next available 30-minute printing slot (${slotTimeStr}) for yourself?`
+                );
+
+                if (acceptAutoBook) {
+                    selectedIndices.push(targetSlotIdx);
+                }
+            }
         }
+    } else {
+        if (selectedIndices.includes(0) && day === 1 && printer === "Super9") {
+            selectedIndices = [];
+        }
+
+        if (selectedIndices.includes(idx)) {
+            selectedIndices = selectedIndices.filter(i => i !== idx);
+        } else {
+            if (selectedIndices.length === 0) {
+                selectedIndices.push(idx);
+            } else if (selectedIndices.length === 1) {
+                if (Math.abs(selectedIndices[0] - idx) === 1) {
+                    selectedIndices.push(idx);
+                } else {
+                    selectedIndices = [idx];
+                }
+            } else {
+                selectedIndices = [idx];
+            }
+        }
+        selectedIndices.sort((a, b) => a - b);
+    }
+
+    updateVisuals();
+}
 
         function updateVisuals() {
-            const times = getTimesForDate(dateInput.value);
-            times.forEach((_, i) => {
-                const slot = document.getElementById(`slot-${i}`);
-                if (slot && !slot.classList.contains('reserved') && !slot.classList.contains('locked')) {
-                    slot.className = selectedIndices.includes(i) ? 'time-slot selected' : 'time-slot';
-                }
-            });
+    const times = getTimesForDate(dateInput.value);
+    const dateObj = new Date(dateInput.value + 'T00:00:00');
+    const day = dateObj.getDay();
 
-            if (selectedIndices.length > 0) {
-                document.getElementById('form-container').style.display = 'block';
-            } else {
-                document.getElementById('form-container').style.display = 'none';
-            }
+    times.forEach((_, i) => {
+        const slot = document.getElementById(`slot-${i}`);
+        if (slot && !slot.classList.contains('reserved') && !slot.classList.contains('locked')) {
+            slot.className = selectedIndices.includes(i) ? 'time-slot selected' : 'time-slot';
         }
+    });
 
-        function clearAll() { 
-            selectedIndices = []; 
-            updateVisuals(); 
-            document.getElementById('form-container').style.display = "none"; 
+    if (selectedIndices.length > 0) {
+        document.getElementById('form-container').style.display = 'block';
+
+        // Check if Clay Prep (index 0 on Monday for Super9) is selected
+        const isClayPrepSelected = (printer === "Super9" && day === 1 && selectedIndices.includes(0));
+        const groupContainer = document.getElementById('group-container');
+
+        if (isClayPrepSelected) {
+            groupContainer.style.display = 'none';
+            // Uncheck partner box and hide partner fields if previously open
+            document.getElementById('has-partner').checked = false;
+            document.getElementById('partner-box').style.display = 'none';
+        } else {
+            groupContainer.style.display = 'block';
         }
+    } else {
+        document.getElementById('form-container').style.display = 'none';
+    }
+}
+
+function clearAll() { 
+    selectedIndices = []; 
+    updateVisuals(); 
+    document.getElementById('form-container').style.display = "none";
+    document.getElementById('has-partner').checked = false;
+    document.getElementById('partner-box').style.display = 'none';
+}
 
         function toggleView(view) {
             document.getElementById('booking-view').style.display = (view === 'booking') ? 'block' : 'none';
