@@ -276,18 +276,21 @@
 
         async function handleConfirm() {
     const name = document.getElementById('user-name').value.trim();
-    const email = document.getElementById('user-email').value.trim();
+    const email = document.getElementById('user-email').value.trim().toLowerCase(); // Converted to lowercase
     const groupInput = document.getElementById('group-members') ? document.getElementById('group-members').value.trim() : "";
     const btn = document.getElementById('submit-btn'); 
 
-    if (!name || !email) return alert("Please fill in your details.");
-    
-    // --- GROUP MEMBER VALIDATION (First and Last Name Check) ---
-    if (groupInput.length > 0) {
-        // Split by comma
-        const members = groupInput.split(',').map(m => m.trim()).filter(m => m.length > 0);
+    // 1. Basic Required Field Check
+    if (!name || !email) return alert("Please fill in your name and email.");
 
-        // Verify each entry has at least a First and Last name
+    // 2. @uark.edu Domain Validation Check
+    if (!email.endsWith('@uark.edu')) {
+        return alert("⚠️ Access Restricted: You must use an official @uark.edu email address to complete a booking.");
+    }
+
+    // 3. Group Member Validation Check
+    if (groupInput.length > 0) {
+        const members = groupInput.split(',').map(m => m.trim()).filter(m => m.length > 0);
         const isValid = members.every(member => {
             const nameParts = member.split(/\s+/);
             return nameParts.length >= 2;
@@ -298,7 +301,7 @@
         }
     }
 
-    // UI Feedback (Lock button and show loading state)
+    // --- PROCEED WITH SUBMISSION ---
     btn.disabled = true; 
     btn.style.opacity = "0.7";
     btn.style.cursor = "not-allowed";
