@@ -194,14 +194,11 @@
             }
 
             try {
-                const [statusRes, historyRes] = await Promise.all([
-                    fetch(`${SCRIPT_URL}?action=getStatus`),
-                    fetch(`${SCRIPT_URL}?action=getHistory`)
-                ]);
-                const statusData = await statusRes.json();
-                const allBookings = await historyRes.json();
+                const response = await fetch(`${SCRIPT_URL}?action=getInitialData&printer=${printer}&date=${selectedDate}`);
+const initialData = await response.json();
 
-                const isOnline = (printer === "Super9") ? statusData.super9 === "Online" : statusData.scara === "Online";
+const isOnline = (initialData.status === "Online");
+const allBookings = initialData.history;
 
                 if (!isOnline) {
                     grid.innerHTML = `<div style="grid-column: 1/-1; background: #fee2e2; color: #b91c1c; padding: 30px; border-radius: 15px; font-weight: 700;">⚠️ This printer is currently OFFLINE for maintenance.</div>`;
