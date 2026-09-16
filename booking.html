@@ -88,8 +88,19 @@
         const printer = params.get('printer') || "Super9";
         let selectedIndices = [];
 
-        const super9Times = ["01:00 PM - 02:30 PM", "02:30 PM - 03:00 PM", "03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
+        // Time arrays defined per schedule type
+        const super9MondayTimes = ["01:00 PM - 02:30 PM", "02:30 PM - 03:00 PM", "03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
+        const super9StandardTimes = ["01:00 PM - 01:30 PM", "01:30 PM - 02:00 PM", "02:00 PM - 02:30 PM", "02:30 PM - 03:00 PM", "03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
         const scaraTimes = ["09:00 AM - 11:00 AM", "10:00 AM - 12:00 PM", "01:00 PM - 03:00 PM", "02:00 PM - 04:00 PM"];
+
+        function getTimesForDate(dateStr) {
+            if (printer === "SCARA") return scaraTimes;
+            if (!dateStr) return super9StandardTimes;
+            
+            const dateObj = new Date(dateStr + 'T00:00:00');
+            const day = dateObj.getDay(); // 1 = Monday
+            return (day === 1) ? super9MondayTimes : super9StandardTimes;
+        }
 
         const rules = {
             "Super9": [
@@ -174,7 +185,7 @@
                 }
 
                 grid.innerHTML = "";
-                const times = (printer === "Super9") ? super9Times : scaraTimes;
+                const times = getTimesForDate(selectedDate);
 
                 const nowCentralStr = new Intl.DateTimeFormat('en-US', { 
                     timeZone: 'America/Chicago', 
@@ -269,19 +280,16 @@
                     }
                 }
             } else {
-                // If Clay Prep was previously selected and user clicks a regular slot, clear Clay Prep selection
-                if (selectedIndices.includes(0)) {
+                if (selectedIndices.includes(0) && day === 1 && printer === "Super9") {
                     selectedIndices = [];
                 }
 
                 if (selectedIndices.includes(idx)) {
-                    // Deselect slot
                     selectedIndices = selectedIndices.filter(i => i !== idx);
                 } else {
                     if (selectedIndices.length === 0) {
                         selectedIndices.push(idx);
                     } else if (selectedIndices.length === 1) {
-                        // Allow choosing 2 consecutive slots
                         if (Math.abs(selectedIndices[0] - idx) === 1) {
                             selectedIndices.push(idx);
                         } else {
@@ -294,11 +302,11 @@
                 selectedIndices.sort((a, b) => a - b);
             }
 
-            updateVisuals(day);
+            updateVisuals();
         }
 
-        function updateVisuals(day) {
-            const times = (printer === "Super9") ? super9Times : scaraTimes;
+        function updateVisuals() {
+            const times = getTimesForDate(dateInput.value);
             times.forEach((_, i) => {
                 const slot = document.getElementById(`slot-${i}`);
                 if (slot && !slot.classList.contains('reserved') && !slot.classList.contains('locked')) {
@@ -360,13 +368,15 @@
             btn.style.cursor = "not-allowed";
             btn.innerHTML = `<span class="spinner"></span> Verifying Reservation...`;
 
+            const currentTimes = getTimesForDate(dateInput.value);
+
             const payload = { 
                 action: 'book', 
                 name, 
                 email, 
                 printer, 
                 date: dateInput.value, 
-                time: selectedIndices.map(i => (printer === "Super9" ? super9Times : scaraTimes)[i]).join(', '), 
+                time: selectedIndices.map(i => currentTimes[i]).join(', '), 
                 group: groupInput
             };
 
