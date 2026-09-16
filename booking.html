@@ -101,7 +101,6 @@
                 "<strong>Lunch (12:00 - 1:00 PM) is not bookable.</strong>",
                 "<strong>Sign up no later than one (1) hour before you plan to print.</strong>",
                 "<strong>Use the Manage/Cancel Existing Booking button at the bottom of the page to cancel or look up your appointment(s).</strong> Cancellations must be made at least one (1) hour in advance of your booked starting time.",
-
                 "<strong>All work must end at 4:30 PM to allow staff to begin shutting down the space and shop.</strong> Assist in any cleaning necessary at the end of your printing session.",
                 "<strong>If any other issues arise, contact atcfablab@gmail.com & we will help you as best we can.</strong>"
             ],
@@ -239,12 +238,12 @@
         function handleSelection(idx, day) {
             const isClayPrep = (printer === "Super9" && day === 1 && idx === 0);
 
-            if (selectedIndices.includes(idx)) {
-                selectedIndices = [];
-            } else {
-                selectedIndices = [idx];
+            if (isClayPrep) {
+                if (selectedIndices.includes(0)) {
+                    selectedIndices = [];
+                } else {
+                    selectedIndices = [0];
 
-                if (isClayPrep) {
                     const isSlot1Taken = document.getElementById('slot-1')?.classList.contains('reserved');
                     const isSlot2Taken = document.getElementById('slot-2')?.classList.contains('reserved');
 
@@ -269,6 +268,30 @@
                         }
                     }
                 }
+            } else {
+                // If Clay Prep was previously selected and user clicks a regular slot, clear Clay Prep selection
+                if (selectedIndices.includes(0)) {
+                    selectedIndices = [];
+                }
+
+                if (selectedIndices.includes(idx)) {
+                    // Deselect slot
+                    selectedIndices = selectedIndices.filter(i => i !== idx);
+                } else {
+                    if (selectedIndices.length === 0) {
+                        selectedIndices.push(idx);
+                    } else if (selectedIndices.length === 1) {
+                        // Allow choosing 2 consecutive slots
+                        if (Math.abs(selectedIndices[0] - idx) === 1) {
+                            selectedIndices.push(idx);
+                        } else {
+                            selectedIndices = [idx];
+                        }
+                    } else {
+                        selectedIndices = [idx];
+                    }
+                }
+                selectedIndices.sort((a, b) => a - b);
             }
 
             updateVisuals(day);
