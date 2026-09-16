@@ -328,6 +328,8 @@ const allBookings = initialData.history;
 
         function updateVisuals() {
     const times = getTimesForDate(dateInput.value);
+    
+    // Parse with local time so the day index matches Central Time correctly
     const dateObj = new Date(dateInput.value + 'T00:00:00');
     const day = dateObj.getDay();
 
@@ -341,13 +343,12 @@ const allBookings = initialData.history;
     if (selectedIndices.length > 0) {
         document.getElementById('form-container').style.display = 'block';
 
-        // Check if Clay Prep (index 0 on Monday for Super9) is selected
+        // Check if Super9 Monday Clay Prep (index 0) is among selected slots
         const isClayPrepSelected = (printer === "Super9" && day === 1 && selectedIndices.includes(0));
         const groupContainer = document.getElementById('group-container');
 
         if (isClayPrepSelected) {
             groupContainer.style.display = 'none';
-            // Uncheck partner box and hide partner fields if previously open
             document.getElementById('has-partner').checked = false;
             document.getElementById('partner-box').style.display = 'none';
         } else {
