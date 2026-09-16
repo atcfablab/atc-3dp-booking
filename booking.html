@@ -485,9 +485,19 @@ function clearAll() {
         list.innerHTML = filtered.map(b => {
             const locked = isWithinLockout(b.date, b.time.split(' - ')[0]);
             const partnerInfo = b.group ? `<br><small style="color:#6b7280;">Partner: ${b.group}</small>` : '';
+            
+            // Check if this booking is Super9 Monday Clay Prep (01:00 PM - 02:30 PM)
+            const dateObj = new Date(b.date + 'T00:00:00');
+            const isMonday = dateObj.getDay() === 1;
+            const isClayPrepSlot = (b.printer === "Super9" && isMonday && b.time.includes("01:00 PM - 02:30 PM"));
+            
+            const slotTag = isClayPrepSlot 
+                ? ' <span style="background:#f59e0b; color:#fff; font-size:0.65rem; padding:2px 6px; border-radius:6px; font-weight:800; text-transform:uppercase;">Clay Prep</span>' 
+                : '';
+
             return `<div class="booking-item">
                 <div>
-                    <strong>${b.printer}</strong><br>
+                    <strong>${b.printer}</strong>${slotTag}<br>
                     ${b.date} @ ${b.time}${partnerInfo}
                 </div>
                 <div>
@@ -500,7 +510,6 @@ function clearAll() {
         list.innerHTML = "Error connecting to server.";
     }
 }
-
         async function cancelBooking(id, date, name, printer, time) {
             if (!confirm("Are you sure you want to cancel this reservation?")) return;
             document.getElementById('results-list').innerHTML = "Cancelling...";
