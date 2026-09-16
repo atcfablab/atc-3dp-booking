@@ -276,24 +276,30 @@
 
         async function handleConfirm() {
     const name = document.getElementById('user-name').value.trim();
-    const email = document.getElementById('user-email').value.trim().toLowerCase(); // Converted to lowercase
+    const email = document.getElementById('user-email').value.trim().toLowerCase();
     const groupInput = document.getElementById('group-members') ? document.getElementById('group-members').value.trim() : "";
     const btn = document.getElementById('submit-btn'); 
 
     // 1. Basic Required Field Check
-    if (!name || !email) return alert("Please fill in your name and email.");
+    if (!name || !email) return alert("Please fill in both your full name and email.");
 
-    // 2. @uark.edu Domain Validation Check
+    // 2. Main User Full Name Check (Requires at least First and Last Name)
+    const nameParts = name.split(/\s+/).filter(part => part.length > 0);
+    if (nameParts.length < 2) {
+        return alert("Please enter your full first and last name (e.g., Jane Doe).");
+    }
+
+    // 3. @uark.edu Email Domain Check
     if (!email.endsWith('@uark.edu')) {
         return alert("⚠️ Access Restricted: You must use an official @uark.edu email address to complete a booking.");
     }
 
-    // 3. Group Member Validation Check
+    // 4. Group Member Full Name & Format Check
     if (groupInput.length > 0) {
         const members = groupInput.split(',').map(m => m.trim()).filter(m => m.length > 0);
         const isValid = members.every(member => {
-            const nameParts = member.split(/\s+/);
-            return nameParts.length >= 2;
+            const parts = member.split(/\s+/).filter(p => p.length > 0);
+            return parts.length >= 2;
         });
 
         if (!isValid) {
