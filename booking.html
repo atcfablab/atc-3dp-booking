@@ -88,19 +88,20 @@
         const printer = params.get('printer') || "Super9";
         let selectedIndices = [];
 
-        const super9Times = ["01:00 PM - 01:30 PM", "01:30 PM - 02:00 PM", "02:00 PM - 02:30 PM", "02:30 PM - 03:00 PM", "03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
+        const super9Times = ["01:00 PM - 02:30 PM", "02:30 PM - 03:00 PM", "03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
         const scaraTimes = ["09:00 AM - 11:00 AM", "10:00 AM - 12:00 PM", "01:00 PM - 03:00 PM", "02:00 PM - 04:00 PM"];
 
         const rules = {
             "Super9": [
-                "<strong>Clay Preparation is required every Monday from 9:00 - 10:00 AM.</strong> This task requires two individual students to sign up independently. Each student must book their own slot to help load clay for the week. If these two spots are not filled, the class will not have clay for printing. These two students will also automatically receive printing time from 10:00 - 10:30 AM on that day. They are welcome to book the following 30 minute slot from 10:30 - 11:00 AM if they would like a full hour of printing between the two. This can be coordinated as a group.",
+                "<strong>Clay Preparation is required every Monday from 1:00 - 2:30 PM.</strong> This task requires two individual students to sign up independently. Each student must book their own slot to help load clay for the week.",
                 "<strong>Printing sessions are 30-minute increments.</strong>",
                 "<strong>Students may book 30 or 60 minutes per session.</strong>",
                 "<strong>One student max per printing time slot.</strong>",
                 "<strong>Two students max per Clay Preparation slot.</strong>",
                 "<strong>Lunch (12:00 - 1:00 PM) is not bookable.</strong>",
                 "<strong>Sign up no later than one (1) hour before you plan to print.</strong>",
-                "<strong>Use the Manage/Cancel Existing Booking button at the bottom of the page to cancel or look up your appointment(s).</strong> Cancellations must be made at least one (1) hour in advance of your booked starting time. Enter your name and email to find and cancel your booking. If cancellation falls within a shorter time frame, try to coordinate with your classmates on another group taking your scheduled spot.",
+                "<strong>Use the Manage/Cancel Existing Booking button at the bottom of the page to cancel or look up your appointment(s).</strong> Cancellations must be made at least one (1) hour in advance of your booked starting time.",
+
                 "<strong>All work must end at 4:30 PM to allow staff to begin shutting down the space and shop.</strong> Assist in any cleaning necessary at the end of your printing session.",
                 "<strong>If any other issues arise, contact atcfablab@gmail.com & we will help you as best we can.</strong>"
             ],
@@ -111,7 +112,7 @@
                 "<strong>When booking time, include your other group members' names.</strong>",
                 "<strong>Lunch (12:00 - 1:00 PM) is not bookable.</strong>",
                 "<strong>Sign up no later than one (1) hour before you plan to print.</strong>",
-                "<strong>Use the Manage/Cancel Existing Booking button at the bottom of the page to cancel or look up your appointment(s).</strong> Cancellations must be made at least one (1) hour in advance of your booked starting time. Enter your name and email to find and cancel your booking. If cancellation falls within a shorter time frame, try to coordinate with your classmates on another group taking your scheduled spot.",
+                "<strong>Use the Manage/Cancel Existing Booking button at the bottom of the page to cancel or look up your appointment(s).</strong> Cancellations must be made at least one (1) hour in advance of your booked starting time.",
                 "<strong>All work must end at 4:30 PM to allow staff to begin shutting down the space and shop.</strong> Assist in any cleaning necessary at the end of your printing session.",
                 "<strong>If any other issues arise, contact atcfablab@gmail.com & we will help you as best we can.</strong>"
             ]
@@ -123,7 +124,6 @@
             const li = document.createElement('li'); li.innerHTML = text;
             document.getElementById('rules-list').appendChild(li);
         });
-        
 
         const dateInput = document.getElementById('date-picker');
         dateInput.setAttribute('min', new Date().toISOString().split('T')[0]);
@@ -142,132 +142,161 @@
         }
 
         async function renderGrid() {
-  const grid = document.getElementById('time-grid');
-  const selectedDate = dateInput.value;
-  if (!selectedDate) return;
+            const grid = document.getElementById('time-grid');
+            const selectedDate = dateInput.value;
+            if (!selectedDate) return;
 
-  const dateObj = new Date(selectedDate + 'T00:00:00');
-  const day = dateObj.getDay(); // 0 = Sun, 1 = Mon, 2 = Tue, 3 = Wed, 4 = Thu, 5 = Fri, 6 = Sat
+            const dateObj = new Date(selectedDate + 'T00:00:00');
+            const day = dateObj.getDay(); // 1 = Monday
 
-  grid.innerHTML = "Checking availability...";
-  document.getElementById('slot-container').style.display = "block";
-  document.getElementById('form-container').style.display = "none";
-  selectedIndices = [];
+            grid.innerHTML = "Checking availability...";
+            document.getElementById('slot-container').style.display = "block";
+            document.getElementById('form-container').style.display = "none";
+            selectedIndices = [];
 
-  // --- DAY RESTRICTIONS ---
-  // Super9 is only available Mon (1), Wed (3), Fri (5)
-  if (printer === "Super9" && ![1, 3, 5].includes(day)) {
-    grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>Super9 is only available on Mon, Wed, and Fri. Please select a valid date.</div>";
-    return;
-  }
+            if (printer === "Super9" && ![1, 3, 5].includes(day)) {
+                grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>Super9 is only available on Mon, Wed, and Fri. Please select a valid date.</div>";
+                return;
+            }
 
-  try {
-    const [statusRes, historyRes] = await Promise.all([
-      fetch(`${SCRIPT_URL}?action=getStatus`),
-      fetch(`${SCRIPT_URL}?action=getHistory`)
-    ]);
-    const statusData = await statusRes.json();
-    const allBookings = await historyRes.json();
+            try {
+                const [statusRes, historyRes] = await Promise.all([
+                    fetch(`${SCRIPT_URL}?action=getStatus`),
+                    fetch(`${SCRIPT_URL}?action=getHistory`)
+                ]);
+                const statusData = await statusRes.json();
+                const allBookings = await historyRes.json();
 
-    const isOnline = (printer === "Super9") ? statusData.super9 === "Online" : statusData.scara === "Online";
+                const isOnline = (printer === "Super9") ? statusData.super9 === "Online" : statusData.scara === "Online";
 
-    if (!isOnline) {
-      grid.innerHTML = `<div style="grid-column: 1/-1; background: #fee2e2; color: #b91c1c; padding: 30px; border-radius: 15px; font-weight: 700;">⚠️ This printer is currently OFFLINE for maintenance.</div>`;
-      return;
-    }
-
-    grid.innerHTML = "";
-    // Select the times array based on active printer
-    const times = (printer === "Super9") ? super9Times : scaraTimes;
-
-    times.forEach((timeStr, i) => {
-      const slot = document.createElement('div');
-      slot.className = 'time-slot';
-      slot.id = `slot-${i}`;
-
-      const bookingCount = allBookings.filter(b =>
-        b.printer === printer && b.date === selectedDate && b.time.includes(timeStr)
-      ).length;
-
-      const isFull = bookingCount >= 1; // Standard 1 spot per 30-min slot
-
-      if (isFull) {
-        slot.classList.add('reserved');
-        slot.innerText = timeStr + " (Full)";
-      } else if (isWithinLockout(selectedDate, timeStr)) {
-        slot.classList.add('locked');
-        slot.innerText = timeStr;
-      } else {
-        slot.onclick = () => handleSelection(i, day);
-        slot.innerText = timeStr;
-      }
-      grid.appendChild(slot);
-    });
-
-  } catch (e) {
-    grid.innerHTML = "Error loading slots.";
-  }
-}
-        
-        function handleSelection(idx, day) {
-            if (printer === "SCARA") {
-                if (selectedIndices.includes(idx)) {
-                    selectedIndices = selectedIndices.filter(i => i !== idx);
-                } else {
-                    if (selectedIndices.length === 0) {
-                        selectedIndices.push(idx);
-                    } else if (selectedIndices.length === 1) {
-                        const firstIdx = selectedIndices[0];
-                        if (Math.abs(firstIdx - idx) === 1) {
-                            selectedIndices.push(idx);
-                        } else {
-                            selectedIndices = [idx];
-                        }
-                    } else {
-                        selectedIndices = [idx];
-                    }
+                if (!isOnline) {
+                    grid.innerHTML = `<div style="grid-column: 1/-1; background: #fee2e2; color: #b91c1c; padding: 30px; border-radius: 15px; font-weight: 700;">⚠️ This printer is currently OFFLINE for maintenance.</div>`;
+                    return;
                 }
-                selectedIndices.sort((a, b) => a - b);
-            } else {
+
+                grid.innerHTML = "";
+                const times = (printer === "Super9") ? super9Times : scaraTimes;
+
+                const nowCentralStr = new Intl.DateTimeFormat('en-US', { 
+                    timeZone: 'America/Chicago', 
+                    year: 'numeric', month: '2-digit', day: '2-digit', 
+                    hour: '2-digit', minute: '2-digit', hour12: false 
+                }).format(new Date());
+
+                const [datePart, timePart] = nowCentralStr.split(', ');
+                const [m, d, y] = datePart.split('/');
+                const todayStr = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+                const currentHour = parseInt(timePart.split(':')[0], 10);
+
                 const isMonday = (day === 1);
-                if (isMonday && idx === 0) {
-                    selectedIndices = selectedIndices.includes(0) ? [] : [0, 1];
-                } else {
-                    if (selectedIndices.includes(idx)) {
-                        selectedIndices = selectedIndices.filter(i => i !== idx);
-                        if (isMonday && selectedIndices.includes(0) && selectedIndices.length === 1) selectedIndices.push(1);
+                const isFutureDate = (selectedDate > todayStr);
+                const isToday = (selectedDate === todayStr);
+
+                const isPriorityLocked = isMonday && (isFutureDate || (isToday && currentHour < 11));
+
+                times.forEach((timeStr, i) => {
+                    const slot = document.createElement('div');
+                    slot.className = 'time-slot';
+                    slot.id = `slot-${i}`;
+
+                    const bookingCount = allBookings.filter(b =>
+                        b.printer === printer && b.date === selectedDate && b.time.includes(timeStr)
+                    ).length;
+
+                    const isClayPrep = (printer === "Super9" && isMonday && i === 0);
+                    const isPriorityPrintingSlot = (printer === "Super9" && isMonday && (i === 1 || i === 2));
+                    const maxCapacity = isClayPrep ? 2 : 1;
+                    const isFull = bookingCount >= maxCapacity;
+
+                    if (isClayPrep) {
+                        const badge = document.createElement('span');
+                        badge.className = 'clay-badge';
+                        badge.innerText = `Clay Prep (${bookingCount}/2)`;
+                        slot.appendChild(badge);
+                    }
+
+                    if (isFull) {
+                        slot.classList.add('reserved');
+                        slot.innerHTML += timeStr + " (Full)";
+                    } else if (isWithinLockout(selectedDate, timeStr)) {
+                        slot.classList.add('locked');
+                        slot.innerHTML += timeStr;
+                    } else if (isPriorityPrintingSlot && isPriorityLocked) {
+                        slot.classList.add('locked');
+                        slot.innerHTML += timeStr + " (Clay Prep Priority)";
                     } else {
-                        if (isMonday && selectedIndices.includes(0)) {
-                            if (idx === 2) selectedIndices = [0, 1, 2];
-                            else selectedIndices = [idx];
-                        } else if (selectedIndices.length < 2 && (selectedIndices.length === 0 || Math.abs(selectedIndices[0] - idx) === 1)) {
-                            selectedIndices.push(idx); selectedIndices.sort((a,b) => a - b);
-                        } else selectedIndices = [idx];
+                        slot.onclick = () => handleSelection(i, day);
+                        slot.innerHTML += timeStr;
+                    }
+                    grid.appendChild(slot);
+                });
+
+            } catch (e) {
+                grid.innerHTML = "Error loading slots.";
+            }
+        }
+
+        function handleSelection(idx, day) {
+            const isClayPrep = (printer === "Super9" && day === 1 && idx === 0);
+
+            if (selectedIndices.includes(idx)) {
+                selectedIndices = [];
+            } else {
+                selectedIndices = [idx];
+
+                if (isClayPrep) {
+                    const isSlot1Taken = document.getElementById('slot-1')?.classList.contains('reserved');
+                    const isSlot2Taken = document.getElementById('slot-2')?.classList.contains('reserved');
+
+                    let targetSlotIdx = null;
+                    let slotTimeStr = "";
+
+                    if (!isSlot1Taken) {
+                        targetSlotIdx = 1;
+                        slotTimeStr = "2:30 PM - 3:00 PM";
+                    } else if (!isSlot2Taken) {
+                        targetSlotIdx = 2;
+                        slotTimeStr = "3:00 PM - 3:30 PM";
+                    }
+
+                    if (targetSlotIdx !== null) {
+                        const acceptAutoBook = confirm(
+                            `You selected Clay Prep (1:00 PM - 2:30 PM).\n\nWould you like to automatically add the next available 30-minute printing slot (${slotTimeStr}) for yourself?`
+                        );
+
+                        if (acceptAutoBook) {
+                            selectedIndices.push(targetSlotIdx);
+                        }
                     }
                 }
             }
+
             updateVisuals(day);
         }
 
         function updateVisuals(day) {
-  const times = (printer === "Super9") ? super9Times : scaraTimes;
-  times.forEach((_, i) => {
-    const slot = document.getElementById(`slot-${i}`);
-    if (slot && !slot.classList.contains('reserved') && !slot.classList.contains('locked')) {
-      slot.className = selectedIndices.includes(i) ? 'time-slot selected' : 'time-slot';
-    }
-  });
+            const times = (printer === "Super9") ? super9Times : scaraTimes;
+            times.forEach((_, i) => {
+                const slot = document.getElementById(`slot-${i}`);
+                if (slot && !slot.classList.contains('reserved') && !slot.classList.contains('locked')) {
+                    slot.className = selectedIndices.includes(i) ? 'time-slot selected' : 'time-slot';
+                }
+            });
 
-  if (selectedIndices.length > 0) {
-    document.getElementById('form-container').style.display = 'block';
-    const groupContainer = document.getElementById('group-container');
-    if (groupContainer) groupContainer.style.display = 'block';
-  } else {
-    document.getElementById('form-container').style.display = 'none';
-  }
-}
+            if (selectedIndices.length > 0) {
+                document.getElementById('form-container').style.display = 'block';
+                const groupContainer = document.getElementById('group-container');
+                if (groupContainer) groupContainer.style.display = 'block';
+            } else {
+                document.getElementById('form-container').style.display = 'none';
+            }
+        }
 
-        function clearAll() { selectedIndices = []; updateVisuals(); document.getElementById('form-container').style.display = "none"; }
+        function clearAll() { 
+            selectedIndices = []; 
+            updateVisuals(); 
+            document.getElementById('form-container').style.display = "none"; 
+        }
 
         function toggleView(view) {
             document.getElementById('booking-view').style.display = (view === 'booking') ? 'block' : 'none';
@@ -275,79 +304,74 @@
         }
 
         async function handleConfirm() {
-    const name = document.getElementById('user-name').value.trim();
-    const email = document.getElementById('user-email').value.trim().toLowerCase();
-    const groupInput = document.getElementById('group-members') ? document.getElementById('group-members').value.trim() : "";
-    const btn = document.getElementById('submit-btn'); 
+            const name = document.getElementById('user-name').value.trim();
+            const email = document.getElementById('user-email').value.trim().toLowerCase();
+            const groupInput = document.getElementById('group-members') ? document.getElementById('group-members').value.trim() : "";
+            const btn = document.getElementById('submit-btn'); 
 
-    // 1. Basic Required Field Check
-    if (!name || !email) return alert("Please fill in both your full name and email.");
+            if (!name || !email) return alert("Please fill in both your full name and email.");
 
-    // 2. Main User Full Name Check (Requires at least First and Last Name)
-    const nameParts = name.split(/\s+/).filter(part => part.length > 0);
-    if (nameParts.length < 2) {
-        return alert("Please enter your full first and last name (e.g., Jane Doe).");
-    }
+            const nameParts = name.split(/\s+/).filter(part => part.length > 0);
+            if (nameParts.length < 2) {
+                return alert("Please enter your full first and last name (e.g., Jane Doe).");
+            }
 
-    // 3. @uark.edu Email Domain Check
-    if (!email.endsWith('@uark.edu')) {
-        return alert("⚠️ Access Restricted: You must use an official @uark.edu email address to complete a booking.");
-    }
+            if (!email.endsWith('@uark.edu')) {
+                return alert("⚠️ Access Restricted: You must use an official @uark.edu email address to complete a booking.");
+            }
 
-    // 4. Group Member Full Name & Format Check
-    if (groupInput.length > 0) {
-        const members = groupInput.split(',').map(m => m.trim()).filter(m => m.length > 0);
-        const isValid = members.every(member => {
-            const parts = member.split(/\s+/).filter(p => p.length > 0);
-            return parts.length >= 2;
-        });
+            if (groupInput.length > 0) {
+                const members = groupInput.split(',').map(m => m.trim()).filter(m => m.length > 0);
+                const isValid = members.every(member => {
+                    const parts = member.split(/\s+/).filter(p => p.length > 0);
+                    return parts.length >= 2;
+                });
 
-        if (!isValid) {
-            return alert("Please enter full first and last names for all group members, separated by commas.\n\nExample: Jane Doe, John Smith");
+                if (!isValid) {
+                    return alert("Please enter full first and last names for all group members, separated by commas.\n\nExample: Jane Doe, John Smith");
+                }
+            }
+
+            btn.disabled = true; 
+            btn.style.opacity = "0.7";
+            btn.style.cursor = "not-allowed";
+            btn.innerHTML = `<span class="spinner"></span> Verifying Reservation...`;
+
+            const payload = { 
+                action: 'book', 
+                name, 
+                email, 
+                printer, 
+                date: dateInput.value, 
+                time: selectedIndices.map(i => (printer === "Super9" ? super9Times : scaraTimes)[i]).join(', '), 
+                group: groupInput
+            };
+
+            try {
+                const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+                const result = await response.json(); 
+
+                if (result.status === "success") {
+                    alert("Reservation Confirmed!");
+                    window.location.href = "index.html";
+                } else {
+                    alert("⚠️ BOOKING STOPPED: " + result.message);
+                    
+                    btn.disabled = false;
+                    btn.style.opacity = "1";
+                    btn.style.cursor = "pointer";
+                    btn.innerText = "Complete Reservation";
+                    renderGrid();
+                }
+            } catch (e) { 
+                console.error("Fetch Error:", e);
+                alert("Error submitting booking. Please refresh and try again."); 
+                btn.disabled = false;
+                btn.style.opacity = "1";
+                btn.style.cursor = "pointer";
+                btn.innerText = "Complete Reservation";
+            }
         }
-    }
-
-    // --- PROCEED WITH SUBMISSION ---
-    btn.disabled = true; 
-    btn.style.opacity = "0.7";
-    btn.style.cursor = "not-allowed";
-    btn.innerHTML = `<span class="spinner"></span> Verifying Reservation...`;
-
-    const payload = { 
-        action: 'book', 
-        name, 
-        email, 
-        printer, 
-        date: dateInput.value, 
-        time: selectedIndices.map(i => (printer === "Super9" ? super9Times : scaraTimes)[i]).join(', '), 
-        group: groupInput
-    };
-
-    try {
-        const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-        const result = await response.json(); 
-
-        if (result.status === "success") {
-            alert("Reservation Confirmed!");
-            window.location.href = "index.html";
-        } else {
-            alert("⚠️ BOOKING STOPPED: " + result.message);
-            
-            btn.disabled = false;
-            btn.style.opacity = "1";
-            btn.style.cursor = "pointer";
-            btn.innerText = "Complete Reservation";
-            renderGrid();
-        }
-    } catch (e) { 
-        console.error("Fetch Error:", e);
-        alert("Error submitting booking. Please refresh and try again."); 
-        btn.disabled = false;
-        btn.style.opacity = "1";
-        btn.style.cursor = "pointer";
-        btn.innerText = "Complete Reservation";
-    }
-}
 
         async function lookupBookings() {
             const n = document.getElementById('lookup-name').value.trim();
