@@ -53,6 +53,38 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        /* Rules Overlay Modal Styling */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        .modal-content {
+            background: #fff;
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 450px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .modal-content h3 {
+            margin-top: 0;
+            font-size: 1.4rem;
+            color: #111827;
+        }
+        .modal-content p {
+            font-size: 0.95rem;
+            color: #4b5563;
+            line-height: 1.5;
+            margin-bottom: 25px;
+        }
     </style>
 </head>
 <body>
@@ -103,11 +135,23 @@
         </div>
     </div>
 
+    <!-- Rules Announcement Modal -->
+    <div id="rules-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h3 id="modal-title">Notice</h3>
+            <p id="modal-message">Please read all rules and guidelines carefully before completing your reservation.</p>
+            <button class="primary-btn" style="margin-top: 0;" onclick="closeRulesModal()">I Understand</button>
+        </div>
+    </div>
+
     <script>
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbweWbXj7Ga2Ns-DcfAboS7mKFkNCGGS83I8qrnnioaUxWlOwZvqKzZQH_ybK88Mz849OQ/exec"; 
         const params = new URLSearchParams(window.location.search);
         const printer = params.get('printer') || "Super9";
         let selectedIndices = [];
+
+        // Increment this version string whenever you make changes to the rules list!
+        const CURRENT_RULES_VERSION = "v1.1";
 
         const super9MondayTimes = ["01:00 PM - 02:30 PM", "02:30 PM - 03:00 PM", "03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
         const super9StandardTimes = ["01:00 PM - 01:30 PM", "01:30 PM - 02:00 PM", "02:00 PM - 02:30 PM", "02:30 PM - 03:00 PM", "03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
@@ -158,6 +202,28 @@
         dateInput.setAttribute('min', new Date().toISOString().split('T')[0]);
         dateInput.onchange = () => renderGrid();
 
+        function checkRulesNotice() {
+            const savedVersion = localStorage.getItem('fablab_rules_version');
+            const modal = document.getElementById('rules-modal');
+            const title = document.getElementById('modal-title');
+            const msg = document.getElementById('modal-message');
+
+            if (!savedVersion) {
+                title.innerText = "Welcome to ATC FabLab!";
+                msg.innerText = "Please read the 'Read Before Booking' section fully before proceeding with your reservation.";
+                modal.style.display = 'flex';
+            } else if (savedVersion !== CURRENT_RULES_VERSION) {
+                title.innerText = "Rules Updated!";
+                msg.innerText = "Our booking rules and policies have been updated. Please read the full guidelines carefully before reserving your slot.";
+                modal.style.display = 'flex';
+            }
+        }
+
+        function closeRulesModal() {
+            localStorage.setItem('fablab_rules_version', CURRENT_RULES_VERSION);
+            document.getElementById('rules-modal').style.display = 'none';
+        }
+
         function togglePartnerFields() {
             const hasPartner = document.getElementById('has-partner').checked;
             document.getElementById('partner-box').style.display = hasPartner ? 'block' : 'none';
@@ -195,10 +261,10 @@
 
             try {
                 const response = await fetch(`${SCRIPT_URL}?action=getInitialData&printer=${printer}&date=${selectedDate}`);
-const initialData = await response.json();
+                const initialData = await response.json();
 
-const isOnline = (initialData.status === "Online");
-const allBookings = initialData.history;
+                const isOnline = (initialData.status === "Online");
+                const allBookings = initialData.history;
 
                 if (!isOnline) {
                     grid.innerHTML = `<div style="grid-column: 1/-1; background: #fee2e2; color: #b91c1c; padding: 30px; border-radius: 15px; font-weight: 700;">⚠️ This printer is currently OFFLINE for maintenance.</div>`;
@@ -268,104 +334,102 @@ const allBookings = initialData.history;
         }
 
         function handleSelection(idx, day) {
-    const isClayPrep = (printer === "Super9" && day === 1 && idx === 0);
+            const isClayPrep = (printer === "Super9" && day === 1 && idx === 0);
 
-    if (isClayPrep) {
-        if (selectedIndices.includes(0)) {
-            selectedIndices = [];
-        } else {
-            selectedIndices = [0];
-
-            const isSlot1Taken = document.getElementById('slot-1')?.classList.contains('reserved');
-            const isSlot2Taken = document.getElementById('slot-2')?.classList.contains('reserved');
-
-            let targetSlotIdx = null;
-            let slotTimeStr = "";
-
-            if (!isSlot1Taken) {
-                targetSlotIdx = 1;
-                slotTimeStr = "2:30 PM - 3:00 PM";
-            } else if (!isSlot2Taken) {
-                targetSlotIdx = 2;
-                slotTimeStr = "3:00 PM - 3:30 PM";
-            }
-
-            if (targetSlotIdx !== null) {
-                const acceptAutoBook = confirm(
-                    `You selected Clay Prep (1:00 PM - 2:30 PM).\n\nWould you like to automatically add the next available 30-minute printing slot (${slotTimeStr}) for yourself?`
-                );
-
-                if (acceptAutoBook) {
-                    selectedIndices.push(targetSlotIdx);
-                }
-            }
-        }
-    } else {
-        if (selectedIndices.includes(0) && day === 1 && printer === "Super9") {
-            selectedIndices = [];
-        }
-
-        if (selectedIndices.includes(idx)) {
-            selectedIndices = selectedIndices.filter(i => i !== idx);
-        } else {
-            if (selectedIndices.length === 0) {
-                selectedIndices.push(idx);
-            } else if (selectedIndices.length === 1) {
-                if (Math.abs(selectedIndices[0] - idx) === 1) {
-                    selectedIndices.push(idx);
+            if (isClayPrep) {
+                if (selectedIndices.includes(0)) {
+                    selectedIndices = [];
                 } else {
-                    selectedIndices = [idx];
+                    selectedIndices = [0];
+
+                    const isSlot1Taken = document.getElementById('slot-1')?.classList.contains('reserved');
+                    const isSlot2Taken = document.getElementById('slot-2')?.classList.contains('reserved');
+
+                    let targetSlotIdx = null;
+                    let slotTimeStr = "";
+
+                    if (!isSlot1Taken) {
+                        targetSlotIdx = 1;
+                        slotTimeStr = "2:30 PM - 3:00 PM";
+                    } else if (!isSlot2Taken) {
+                        targetSlotIdx = 2;
+                        slotTimeStr = "3:00 PM - 3:30 PM";
+                    }
+
+                    if (targetSlotIdx !== null) {
+                        const acceptAutoBook = confirm(
+                            `You selected Clay Prep (1:00 PM - 2:30 PM).\n\nWould you like to automatically add the next available 30-minute printing slot (${slotTimeStr}) for yourself?`
+                        );
+
+                        if (acceptAutoBook) {
+                            selectedIndices.push(targetSlotIdx);
+                        }
+                    }
                 }
             } else {
-                selectedIndices = [idx];
-            }
-        }
-        selectedIndices.sort((a, b) => a - b);
-    }
+                if (selectedIndices.includes(0) && day === 1 && printer === "Super9") {
+                    selectedIndices = [];
+                }
 
-    updateVisuals();
-}
+                if (selectedIndices.includes(idx)) {
+                    selectedIndices = selectedIndices.filter(i => i !== idx);
+                } else {
+                    if (selectedIndices.length === 0) {
+                        selectedIndices.push(idx);
+                    } else if (selectedIndices.length === 1) {
+                        if (Math.abs(selectedIndices[0] - idx) === 1) {
+                            selectedIndices.push(idx);
+                        } else {
+                            selectedIndices = [idx];
+                        }
+                    } else {
+                        selectedIndices = [idx];
+                    }
+                }
+                selectedIndices.sort((a, b) => a - b);
+            }
+
+            updateVisuals();
+        }
 
         function updateVisuals() {
-    const times = getTimesForDate(dateInput.value);
-    
-    // Parse with local time so the day index matches Central Time correctly
-    const dateObj = new Date(dateInput.value + 'T00:00:00');
-    const day = dateObj.getDay();
+            const times = getTimesForDate(dateInput.value);
+            
+            const dateObj = new Date(dateInput.value + 'T00:00:00');
+            const day = dateObj.getDay();
 
-    times.forEach((_, i) => {
-        const slot = document.getElementById(`slot-${i}`);
-        if (slot && !slot.classList.contains('reserved') && !slot.classList.contains('locked')) {
-            slot.className = selectedIndices.includes(i) ? 'time-slot selected' : 'time-slot';
+            times.forEach((_, i) => {
+                const slot = document.getElementById(`slot-${i}`);
+                if (slot && !slot.classList.contains('reserved') && !slot.classList.contains('locked')) {
+                    slot.className = selectedIndices.includes(i) ? 'time-slot selected' : 'time-slot';
+                }
+            });
+
+            if (selectedIndices.length > 0) {
+                document.getElementById('form-container').style.display = 'block';
+
+                const isClayPrepSelected = (printer === "Super9" && day === 1 && selectedIndices.includes(0));
+                const groupContainer = document.getElementById('group-container');
+
+                if (isClayPrepSelected) {
+                    groupContainer.style.display = 'none';
+                    document.getElementById('has-partner').checked = false;
+                    document.getElementById('partner-box').style.display = 'none';
+                } else {
+                    groupContainer.style.display = 'block';
+                }
+            } else {
+                document.getElementById('form-container').style.display = 'none';
+            }
         }
-    });
 
-    if (selectedIndices.length > 0) {
-        document.getElementById('form-container').style.display = 'block';
-
-        // Check if Super9 Monday Clay Prep (index 0) is among selected slots
-        const isClayPrepSelected = (printer === "Super9" && day === 1 && selectedIndices.includes(0));
-        const groupContainer = document.getElementById('group-container');
-
-        if (isClayPrepSelected) {
-            groupContainer.style.display = 'none';
+        function clearAll() { 
+            selectedIndices = []; 
+            updateVisuals(); 
+            document.getElementById('form-container').style.display = "none";
             document.getElementById('has-partner').checked = false;
             document.getElementById('partner-box').style.display = 'none';
-        } else {
-            groupContainer.style.display = 'block';
         }
-    } else {
-        document.getElementById('form-container').style.display = 'none';
-    }
-}
-
-function clearAll() { 
-    selectedIndices = []; 
-    updateVisuals(); 
-    document.getElementById('form-container').style.display = "none";
-    document.getElementById('has-partner').checked = false;
-    document.getElementById('partner-box').style.display = 'none';
-}
 
         function toggleView(view) {
             document.getElementById('booking-view').style.display = (view === 'booking') ? 'block' : 'none';
@@ -454,62 +518,61 @@ function clearAll() {
         }
 
         async function lookupBookings() {
-    const n = document.getElementById('lookup-name').value.trim().toLowerCase();
-    const e = document.getElementById('lookup-email').value.trim().toLowerCase();
-    const list = document.getElementById('results-list');
-    if (!n || !e) return alert("Enter both name and email.");
-    
-    list.innerHTML = "<strong>Searching...</strong>";
-    
-    try {
-        const res = await fetch(`${SCRIPT_URL}?action=getHistory`);
-        const all = await res.json();
-        
-        // Match against primary booker OR partner details in the group field
-        const filtered = all.filter(b => {
-            const primaryNameMatch = b.name && b.name.toLowerCase().includes(n);
-            const primaryEmailMatch = b.email && b.email.toLowerCase() === e;
+            const n = document.getElementById('lookup-name').value.trim().toLowerCase();
+            const e = document.getElementById('lookup-email').value.trim().toLowerCase();
+            const list = document.getElementById('results-list');
+            if (!n || !e) return alert("Enter both name and email.");
             
-            const groupInfo = (b.group || "").toLowerCase();
-            const partnerNameMatch = groupInfo.includes(n);
-            const partnerEmailMatch = groupInfo.includes(e);
+            list.innerHTML = "<strong>Searching...</strong>";
             
-            return (primaryNameMatch || partnerNameMatch) && (primaryEmailMatch || partnerEmailMatch);
-        });
-        
-        if (filtered.length === 0) {
-            list.innerHTML = "<div style='color:red;'>No active bookings found for that name and email.</div>";
-            return;
-        }
-        
-        list.innerHTML = filtered.map(b => {
-            const locked = isWithinLockout(b.date, b.time.split(' - ')[0]);
-            const partnerInfo = b.group ? `<br><small style="color:#6b7280;">Partner: ${b.group}</small>` : '';
-            
-            // Check if this booking is Super9 Monday Clay Prep (01:00 PM - 02:30 PM)
-            const dateObj = new Date(b.date + 'T00:00:00');
-            const isMonday = dateObj.getDay() === 1;
-            const isClayPrepSlot = (b.printer === "Super9" && isMonday && b.time.includes("01:00 PM - 02:30 PM"));
-            
-            const slotTag = isClayPrepSlot 
-                ? ' <span style="background:#f59e0b; color:#fff; font-size:0.65rem; padding:2px 6px; border-radius:6px; font-weight:800; text-transform:uppercase;">Clay Prep</span>' 
-                : '';
+            try {
+                const res = await fetch(`${SCRIPT_URL}?action=getHistory`);
+                const all = await res.json();
+                
+                const filtered = all.filter(b => {
+                    const primaryNameMatch = b.name && b.name.toLowerCase().includes(n);
+                    const primaryEmailMatch = b.email && b.email.toLowerCase() === e;
+                    
+                    const groupInfo = (b.group || "").toLowerCase();
+                    const partnerNameMatch = groupInfo.includes(n);
+                    const partnerEmailMatch = groupInfo.includes(e);
+                    
+                    return (primaryNameMatch || partnerNameMatch) && (primaryEmailMatch || partnerEmailMatch);
+                });
+                
+                if (filtered.length === 0) {
+                    list.innerHTML = "<div style='color:red;'>No active bookings found for that name and email.</div>";
+                    return;
+                }
+                
+                list.innerHTML = filtered.map(b => {
+                    const locked = isWithinLockout(b.date, b.time.split(' - ')[0]);
+                    const partnerInfo = b.group ? `<br><small style="color:#6b7280;">Partner: ${b.group}</small>` : '';
+                    
+                    const dateObj = new Date(b.date + 'T00:00:00');
+                    const isMonday = dateObj.getDay() === 1;
+                    const isClayPrepSlot = (b.printer === "Super9" && isMonday && b.time.includes("01:00 PM - 02:30 PM"));
+                    
+                    const slotTag = isClayPrepSlot 
+                        ? ' <span style="background:#f59e0b; color:#fff; font-size:0.65rem; padding:2px 6px; border-radius:6px; font-weight:800; text-transform:uppercase;">Clay Prep</span>' 
+                        : '';
 
-            return `<div class="booking-item">
-                <div>
-                    <strong>${b.printer}</strong>${slotTag}<br>
-                    ${b.date} @ ${b.time}${partnerInfo}
-                </div>
-                <div>
-                    ${locked ? '<span style="color:gray; font-size:0.7rem;">LOCKED</span>' : 
-                    `<button class="cancel-btn" onclick="cancelBooking('${b.id}','${b.date}','${b.name.replace(/'/g, "\\'")}','${b.printer}','${b.time}')">Cancel</button>`}
-                </div>
-            </div>`;
-        }).join('');
-    } catch (err) {
-        list.innerHTML = "Error connecting to server.";
-    }
-}
+                    return `<div class="booking-item">
+                        <div>
+                            <strong>${b.printer}</strong>${slotTag}<br>
+                            ${b.date} @ ${b.time}${partnerInfo}
+                        </div>
+                        <div>
+                            ${locked ? '<span style="color:gray; font-size:0.7rem;">LOCKED</span>' : 
+                            `<button class="cancel-btn" onclick="cancelBooking('${b.id}','${b.date}','${b.name.replace(/'/g, "\\'")}','${b.printer}','${b.time}')">Cancel</button>`}
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch (err) {
+                list.innerHTML = "Error connecting to server.";
+            }
+        }
+
         async function cancelBooking(id, date, name, printer, time) {
             if (!confirm("Are you sure you want to cancel this reservation?")) return;
             document.getElementById('results-list').innerHTML = "Cancelling...";
@@ -523,6 +586,8 @@ function clearAll() {
                 lookupBookings();
             }
         }
+
+        window.addEventListener('DOMContentLoaded', checkRulesNotice);
     </script>
 </body>
 </html>
