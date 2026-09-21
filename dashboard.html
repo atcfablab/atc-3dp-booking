@@ -149,44 +149,50 @@
     }
 
     // 4. TABLE RENDERING
-    function renderTable() {
-        const tbody = document.getElementById('table-body');
-        const dateFilter = document.getElementById('dash-date').value;
-        const violationMap = {};
+function renderTable() {
+    const tbody = document.getElementById('table-body');
+    const dateFilter = document.getElementById('dash-date').value;
+    const violationMap = {};
+    
+    allBookings.forEach(b => { 
+        if (b.noshow === "Yes") violationMap[b.email] = (violationMap[b.email] || 0) + 1; 
+    });
+
+    const filtered = dateFilter ? allBookings.filter(b => b.date === dateFilter) : allBookings;
+    filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    tbody.innerHTML = filtered.map(row => {
+        const missCount = violationMap[row.email] || 0;
+        const isFlagged = missCount >= 3;
+        const isNoShow = row.noshow === "Yes";
         
-        allBookings.forEach(b => { 
-            if (b.noshow === "Yes") violationMap[b.email] = (violationMap[b.email] || 0) + 1; 
-        });
-
-        const filtered = dateFilter ? allBookings.filter(b => b.date === dateFilter) : allBookings;
-        filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-        tbody.innerHTML = filtered.map(row => {
-            const missCount = violationMap[row.email] || 0;
-            const isFlagged = missCount >= 3;
-            const isNoShow = row.noshow === "Yes";
-            
-            return `
-                <tr class="${isFlagged ? 'violation-row' : ''}">
-                    <td style="font-weight:600;">${row.date}</td>
-                    <td>${row.time}</td>
-                    <td class="${isFlagged ? 'flag-text' : ''}">${row.name} ${isFlagged ? '⚠️ ('+missCount+')' : ''}</td>
-                    <td style="font-size:0.75rem; color:#666;">${row.email}</td>
-                    <td><span class="tag tag-${row.printer.toLowerCase()}">${row.printer}</span></td>
-                    <td>
-                        <div style="display:flex; gap:10px;">
-                            <input type="text" class="notes-input" value="${row.notes || ''}" 
-                                onblur="updateNote(${row.id}, this.value)" placeholder="Add note...">
-                            <button onclick="markNoShow(${row.id}, ${!isNoShow})" 
-                                style="padding:5px 10px; border-radius:8px; cursor:pointer; font-size:0.7rem; font-weight:700; border:1px solid #ccc; background:${isNoShow ? '#ef4444; color:white;' : '#fff'};">
-                                ${isNoShow ? 'Missed' : 'Mark Miss'}
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        }).join('');
-    }
+        // Partner Info Display
+        const partnerInfo = row.group ? `<br><small style="color:#6b7280; font-weight:600;">Partner: ${row.group}</small>` : '';
+        
+        return `
+            <tr class="${isFlagged ? 'violation-row' : ''}">
+                <td style="font-weight:600;">${row.date}</td>
+                <td>${row.time}</td>
+                <td class="${isFlagged ? 'flag-text' : ''}">
+                    ${row.name} ${isFlagged ? '⚠️ ('+missCount+')' : ''}
+                    ${partnerInfo}
+                </td>
+                <td style="font-size:0.75rem; color:#666;">${row.email}</td>
+                <td><span class="tag tag-${row.printer.toLowerCase()}">${row.printer}</span></td>
+                <td>
+                    <div style="display:flex; gap:10px;">
+                        <input type="text" class="notes-input" value="${row.notes || ''}" 
+                            onblur="updateNote(${row.id}, this.value)" placeholder="Add note...">
+                        <button onclick="markNoShow(${row.id}, ${!isNoShow})" 
+                            style="padding:5px 10px; border-radius:8px; cursor:pointer; font-size:0.7rem; font-weight:700; border:1px solid #ccc; background:${isNoShow ? '#ef4444; color:white;' : '#fff'};">
+                            ${isNoShow ? 'Missed' : 'Mark Miss'}
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
 
     // 5. ACTION HANDLERS (NOTES & NO-SHOW)
     async function updateNote(id, val) {
