@@ -45,7 +45,6 @@
                 <div class="printer-card"><div id="dot-SCARA" class="status-dot"></div><div><b>SCARA</b> <button class="toggle-btn" id="btn-SCARA" onclick="toggleStatus('SCARA')">Loading...</button></div></div>
             </div>
 
-
             <div class="controls-flex">
                 <span style="font-weight: 800; font-size: 0.7rem; text-transform: uppercase; color: #9ca3af;">Exports:</span>
                 <button class="export-btn" onclick="generateReport('active')">Print Active</button>
@@ -75,6 +74,16 @@
             document.getElementById('main-content').style.display='block';
             loadData();
         }
+    }
+
+    // Helper function to extract email from partner string "Name (email@uark.edu)"
+    function parsePartner(groupStr) {
+        if (!groupStr) return null;
+        const match = groupStr.match(/(.+?)\s*\(([^)]+)\)/);
+        if (match) {
+            return { name: match[1].trim(), email: match[2].trim() };
+        }
+        return { name: groupStr.trim(), email: '' };
     }
 
     // 2. DATA LOADING
@@ -149,50 +158,87 @@
     }
 
     // 4. TABLE RENDERING
-function renderTable() {
-    const tbody = document.getElementById('table-body');
-    const dateFilter = document.getElementById('dash-date').value;
-    const violationMap = {};
-    
-    allBookings.forEach(b => { 
-        if (b.noshow === "Yes") violationMap[b.email] = (violationMap[b.email] || 0) + 1; 
-    });
+    function renderTable() {
+        const tbody = document.getElementById('table-body');
+        const dateFilter = document.getElementById('dash-date').value;
+        const violationMap = {};
 
-    const filtered = dateFilter ? allBookings.filter(b => b.date === dateFilter) : allBookings;
-    filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+        // Calculate violation counts for both primary bookers and partners
+        allBookings.forEach(b => { 
+            if (b.bookerNoShow === "Yes" && b.email) {
+                violationMap[b.email] = (violationMap[b.email] || 0) + 1;
+            }
+            const partner = parsePartner(b.group);
+            if (b.partnerNoShow === "Yes" && partner && partner.email) {
+                violationMap[partner.email] = (violationMap[partner.email] || 0) + 1;
+            }
+        });
 
-    tbody.innerHTML = filtered.map(row => {
-        const missCount = violationMap[row.email] || 0;
-        const isFlagged = missCount >= 3;
-        const isNoShow = row.noshow === "Yes";
-        
-        // Partner Info Display
-        const partnerInfo = row.group ? `<br><small style="color:#6b7280; font-weight:600;">Partner: ${row.group}</small>` : '';
-        
-        return `
-            <tr class="${isFlagged ? 'violation-row' : ''}">
-                <td style="font-weight:600;">${row.date}</td>
-                <td>${row.time}</td>
-                <td class="${isFlagged ? 'flag-text' : ''}">
-                    ${row.name} ${isFlagged ? '⚠️ ('+missCount+')' : ''}
-                    ${partnerInfo}
-                </td>
-                <td style="font-size:0.75rem; color:#666;">${row.email}</td>
-                <td><span class="tag tag-${row.printer.toLowerCase()}">${row.printer}</span></td>
-                <td>
-                    <div style="display:flex; gap:10px;">
-                        <input type="text" class="notes-input" value="${row.notes || ''}" 
-                            onblur="updateNote(${row.id}, this.value)" placeholder="Add note...">
-                        <button onclick="markNoShow(${row.id}, ${!isNoShow})" 
-                            style="padding:5px 10px; border-radius:8px; cursor:pointer; font-size:0.7rem; font-weight:700; border:1px solid #ccc; background:${isNoShow ? '#ef4444; color:white;' : '#fff'};">
-                            ${isNoShow ? 'Missed' : 'Mark Miss'}
-                        </button>
-                    </div>
-                </td>
-            </tr>
-        `;
-    }).join('');
-}
+        const filtered = dateFilter ? allBookings.filter(b => b.date === dateFilter) : allBookings;
+        filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        tbody.innerHTML = filtered.map(row => {
+            const partner = parsePartner(row.group);
+            
+            const bookerMisses = violationMap[row.email] || 0;
+            const bookerFlagged = bookerMisses >= 3;
+            const bookerIsNoShow = row.bookerNoShow === "Yes";
+
+            const partnerEmail = partner ? partner.email : '';
+            const partnerMisses = partnerEmail ? (violationMap[partnerEmail] || 0) : 0;
+            const partnerFlagged = partnerMisses >= 3;
+            const partnerIsNoShow = row.partnerNoShow === "Yes";
+
+            return `
+                <tr class="${(bookerFlagged || partnerFlagged) ? 'violation-row' : ''}">
+                    <td style="font-weight:600;">${row.date}</td>
+                    <td>${row.time}</td>
+                    <td>
+                        <!-- Booker Info -->
+                        <div style="margin-bottom: 6px;">
+                            <span class="${bookerFlagged ? 'flag-text' : ''}">${row.name}</span>
+                            ${bookerFlagged ? `<span class="flag-text"> ⚠️ (${bookerMisses})</span>` : ''}
+                        </div>
+                        
+                        <!-- Partner Info (if present) -->
+                        ${partner ? `
+                        <div style="font-size:0.8rem; color:#4b5563; border-top:1px dashed #e5e7eb; padding-top:4px;">
+                            <span class="${partnerFlagged ? 'flag-text' : ''}">Partner: ${partner.name}</span>${partnerFlagged ? `<span class="flag-text"> ⚠️ (${partnerMisses})</span>` : ''}
+                        </div>` : ''}
+                    </td>
+                    <td>
+                        <div>${row.email}</div>
+                        ${partner && partner.email ? `<div style="font-size:0.75rem; color:#6b7280; padding-top:4px;">${partner.email}</div>` : ''}
+                    </td>
+                    <td><span class="tag tag-${row.printer.toLowerCase()}">${row.printer}</span></td>
+                    <td>
+                        <div style="display:flex; flex-direction:column; gap:6px;">
+                            <div style="display:flex; gap:10px; align-items:center;">
+                                <input type="text" class="notes-input" value="${row.notes || ''}" 
+                                    onblur="updateNote(${row.id}, this.value)" placeholder="Add note...">
+                                
+                                <!-- Booker Mark Miss Button -->
+                                <button onclick="markNoShow(${row.id}, ${!bookerIsNoShow}, 'booker')" 
+                                    title="Mark Booker Missed"
+                                    style="padding:5px 8px; border-radius:8px; cursor:pointer; font-size:0.7rem; font-weight:700; border:1px solid #ccc; background:${bookerIsNoShow ? '#ef4444; color:white;' : '#fff'}; white-space:nowrap;">
+                                    ${bookerIsNoShow ? 'Booker Missed' : 'Miss (Booker)'}
+                                </button>
+
+                                <!-- Partner Mark Miss Button (Only rendered if partner exists) -->
+                                ${partner ? `
+                                <button onclick="markNoShow(${row.id},${!partnerIsNoShow}, 'partner')" 
+                                    title="Mark Partner Missed"
+                                    style="padding:5px 8px; border-radius:8px; cursor:pointer; font-size:0.7rem; font-weight:700; border:1px solid #ccc; background:${partnerIsNoShow ? '#ef4444; color:white;' : '#fff'}; white-space:nowrap;">
+                                    ${partnerIsNoShow ? 'Partner Missed' : 'Miss (Partner)'}
+                                </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
 
     // 5. ACTION HANDLERS (NOTES & NO-SHOW)
     async function updateNote(id, val) {
@@ -212,14 +258,14 @@ function renderTable() {
         }, 800);
     }
 
-    async function markNoShow(id, state) {
+    async function markNoShow(id, state, target = 'booker') {
         const statusMsg = document.getElementById('status-msg');
         statusMsg.innerText = "Updating...";
         
         fetch(SCRIPT_URL, { 
             method: 'POST',
             mode: 'no-cors',
-            body: JSON.stringify({ action: 'toggleNoShow', id: id, isNoShow: state }) 
+            body: JSON.stringify({ action: 'toggleNoShow', id: id, isNoShow: state, target: target }) 
         });
 
         setTimeout(() => {
@@ -252,11 +298,25 @@ function renderTable() {
 
     function generateReport(type) {
         const violationMap = {};
-        allBookings.forEach(b => { if (b.noshow === "Yes") violationMap[b.email] = (violationMap[b.email] || 0) + 1; });
+        allBookings.forEach(b => { 
+            if (b.bookerNoShow === "Yes" && b.email) {
+                violationMap[b.email] = (violationMap[b.email] || 0) + 1;
+            }
+            const partner = parsePartner(b.group);
+            if (b.partnerNoShow === "Yes" && partner && partner.email) {
+                violationMap[partner.email] = (violationMap[partner.email] || 0) + 1;
+            }
+        });
+
         let reportData = allBookings;
         let title = "Active Booking History";
         if (type === 'violations') {
-            reportData = allBookings.filter(b => (violationMap[b.email] || 0) >= 3);
+            reportData = allBookings.filter(b => {
+                const partner = parsePartner(b.group);
+                const bookerViolations = (violationMap[b.email] || 0) >= 3;
+                const partnerViolations = partner && partner.email && (violationMap[partner.email] || 0) >= 3;
+                return bookerViolations || partnerViolations;
+            });
             title = "Violation Report (3+ Misses)";
         }
         printReport(title, reportData, violationMap);
@@ -264,7 +324,16 @@ function renderTable() {
 
     function printReport(title, data, vMap = {}) {
         const win = window.open('', '_blank');
-        win.document.write(`<html><head><title>${title}</title><style>body{font-family:sans-serif;padding:30px;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:12px;}th{background:#eee;}</style></head><body><h1>${title}</h1><p>Generated: ${new Date().toLocaleString()}</p><table><thead><tr><th>Date</th><th>Name</th><th>Email</th><th>Printer</th><th>Time</th><th>Notes</th>${Object.keys(vMap).length ? '<th>Misses</th>' : ''}</tr></thead><tbody>${data.map(r=>`<tr><td>${r.date}</td><td>${r.name}</td><td>${r.email}</td><td>${r.printer}</td><td>${r.time}</td><td>${r.notes||''}</td>${Object.keys(vMap).length ? '<td>'+(vMap[r.email]||0)+'</td>' : ''}</tr>`).join('')}</tbody></table><script>window.print();<\/script></body></html>`);
+        win.document.write(`<html><head><title>${title}</title><style>body{font-family:sans-serif;padding:30px;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:12px;}th{background:#eee;}</style></head><body><h1>${title}</h1><p>Generated: ${new Date().toLocaleString()}</p><table><thead><tr><th>Date</th><th>Name</th><th>Email</th><th>Printer</th><th>Time</th><th>Notes</th>${Object.keys(vMap).length ? '<th>Misses</th>' : ''}</tr></thead><tbody>${data.map(r=>{
+            const partner = parsePartner(r.group);
+            const bookerMisses = vMap[r.email] || 0;
+            const partnerMisses = partner && partner.email ? (vMap[partner.email] || 0) : 0;
+            const displayNames = partner ? `${r.name} / Partner:${partner.name}` : r.name;
+            const displayEmails = partner && partner.email ? `${r.email} /${partner.email}` : r.email;
+            const displayMisses = partner ? `Booker: ${bookerMisses}, Partner:${partnerMisses}` : bookerMisses;
+
+            return `<tr><td>${r.date}</td><td>${displayNames}</td><td>${displayEmails}</td><td>${r.printer}</td><td>${r.time}</td><td>${r.notes\vert{}\vert{}''}</td>${Object.keys(vMap).length ? '<td>'+displayMisses+'</td>' : ''}</tr>`;
+        }).join('')}</tbody></table><script>window.print();<\/script></body></html>`);
         win.document.close();
     }
 </script>
