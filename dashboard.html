@@ -73,6 +73,8 @@
             document.getElementById('login-overlay').style.display='none';
             document.getElementById('main-content').style.display='block';
             loadData();
+        } else {
+            alert("Incorrect Password");
         }
     }
 
@@ -194,13 +196,10 @@
                     <td style="font-weight:600;">${row.date}</td>
                     <td>${row.time}</td>
                     <td>
-                        <!-- Booker Info -->
                         <div style="margin-bottom: 6px;">
                             <span class="${bookerFlagged ? 'flag-text' : ''}">${row.name}</span>
-                            ${bookerFlagged ? `<span class="flag-text"> ⚠️ (${bookerMisses})</span>` : ''}
+                            ${bookerFlagged ? `<span class="flag-text"> ⚠️️ (${bookerMisses})</span>` : ''}
                         </div>
-                        
-                        <!-- Partner Info (if present) -->
                         ${partner ? `
                         <div style="font-size:0.8rem; color:#4b5563; border-top:1px dashed #e5e7eb; padding-top:4px;">
                             <span class="${partnerFlagged ? 'flag-text' : ''}">Partner: ${partner.name}</span>${partnerFlagged ? `<span class="flag-text"> ⚠️ (${partnerMisses})</span>` : ''}
@@ -217,14 +216,12 @@
                                 <input type="text" class="notes-input" value="${row.notes || ''}" 
                                     onblur="updateNote(${row.id}, this.value)" placeholder="Add note...">
                                 
-                                <!-- Booker Mark Miss Button -->
                                 <button onclick="markNoShow(${row.id}, ${!bookerIsNoShow}, 'booker')" 
                                     title="Mark Booker Missed"
                                     style="padding:5px 8px; border-radius:8px; cursor:pointer; font-size:0.7rem; font-weight:700; border:1px solid #ccc; background:${bookerIsNoShow ? '#ef4444; color:white;' : '#fff'}; white-space:nowrap;">
                                     ${bookerIsNoShow ? 'Booker Missed' : 'Miss (Booker)'}
                                 </button>
 
-                                <!-- Partner Mark Miss Button (Only rendered if partner exists) -->
                                 ${partner ? `
                                 <button onclick="markNoShow(${row.id},${!partnerIsNoShow}, 'partner')" 
                                     title="Mark Partner Missed"
@@ -324,16 +321,16 @@
 
     function printReport(title, data, vMap = {}) {
         const win = window.open('', '_blank');
-        win.document.write(`<html><head><title>${title}</title><style>body{font-family:sans-serif;padding:30px;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:12px;}th{background:#eee;}</style></head><body><h1>${title}</h1><p>Generated: ${new Date().toLocaleString()}</p><table><thead><tr><th>Date</th><th>Name</th><th>Email</th><th>Printer</th><th>Time</th><th>Notes</th>${Object.keys(vMap).length ? '<th>Misses</th>' : ''}</tr></thead><tbody>${data.map(r=>{
+        win.document.write('<html><head><title>' + title + '</title><style>body{font-family:sans-serif;padding:30px;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:12px;}th{background:#eee;}</style></head><body><h1>' + title + '</h1><p>Generated: ' + new Date().toLocaleString() + '</p><table><thead><tr><th>Date</th><th>Name</th><th>Email</th><th>Printer</th><th>Time</th><th>Notes</th>' + (Object.keys(vMap).length ? '<th>Misses</th>' : '') + '</tr></thead><tbody>' + data.map(r=>{
             const partner = parsePartner(r.group);
             const bookerMisses = vMap[r.email] || 0;
             const partnerMisses = partner && partner.email ? (vMap[partner.email] || 0) : 0;
-            const displayNames = partner ? `${r.name} / Partner:${partner.name}` : r.name;
-            const displayEmails = partner && partner.email ? `${r.email} /${partner.email}` : r.email;
-            const displayMisses = partner ? `Booker: ${bookerMisses}, Partner:${partnerMisses}` : bookerMisses;
+            const displayNames = partner ? r.name + ' / Partner: ' + partner.name : r.name;
+            const displayEmails = partner && partner.email ? r.email + ' / ' + partner.email : r.email;
+            const displayMisses = partner ? 'Booker: ' + bookerMisses + ', Partner: ' + partnerMisses : bookerMisses;
 
-            return `<tr><td>${r.date}</td><td>${displayNames}</td><td>${displayEmails}</td><td>${r.printer}</td><td>${r.time}</td><td>${r.notes\vert{}\vert{}''}</td>${Object.keys(vMap).length ? '<td>'+displayMisses+'</td>' : ''}</tr>`;
-        }).join('')}</tbody></table><script>window.print();<\/script></body></html>`);
+            return '<tr><td>' + r.date + '</td><td>' + displayNames + '</td><td>' + displayEmails + '</td><td>' + r.printer + '</td><td>' + r.time + '</td><td>' + (r.notes||'') + '</td>' + (Object.keys(vMap).length ? '<td>' + displayMisses + '</td>' : '') + '</tr>';
+        }).join('') + '</tbody></table><script>window.print();</' + 'script></body></html>');
         win.document.close();
     }
 </script>
