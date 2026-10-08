@@ -61,278 +61,331 @@
     </div>
 
     <script>
-    // 1. GLOBAL SETTINGS & LOCKS
-    let isUpdating = { Super9: false, SCARA: false };
+// 1. GLOBAL SETTINGS & LOCKS
+let isUpdating = { Super9: false, SCARA: false };
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbweWbXj7Ga2Ns-DcfAboS7mKFkNCGGS83I8qrnnioaUxWlOwZvqKzZQH_ybK88Mz849OQ/exec"; 
+let allBookings = [];
+let statuses = { super9: "Online", scara: "Online" };
+
+function checkPass() {
+    if (document.getElementById('pass-field').value === "ATC_FALL_2026") {
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('main-content').style.display = 'block';
+        loadData();
+    } else {
+        alert("Incorrect Password");
+    }
+}
+
+// Helper: Parse comma-separated group/partner members into an array of objects
+// Handles formats like: "Jane Doe (jdoe@uark.edu)" OR "Jane Doe jdoe@uark.edu"
+function parseGroupMembers(groupStr) {
+    if (!groupStr) return [];
+    const entries = groupStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
     
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbweWbXj7Ga2Ns-DcfAboS7mKFkNCGGS83I8qrnnioaUxWlOwZvqKzZQH_ybK88Mz849OQ/exec"; 
-    let allBookings = [];
-    let statuses = { super9: "Online", scara: "Online" };
+    return entries.map(m => {
+        const emailMatch = m.match(/\b[A-Za-z0-9._%+-]+@uark\.edu\b/i);
+        const email = emailMatch ? emailMatch[0].toLowerCase() : '';
+        const nameOnly = emailMatch 
+            ? m.replace(emailMatch[0], '').replace(/[()]/g, '').trim() 
+            : m.trim();
+        return { name: nameOnly || 'Group Member', email: email };
+    }).filter(m => m.email !== '');
+}
 
-    function checkPass() {
-        if (document.getElementById('pass-field').value === "ATC_FALL_2026") {
-            document.getElementById('login-overlay').style.display='none';
-            document.getElementById('main-content').style.display='block';
-            loadData();
-        } else {
-            alert("Incorrect Password");
-        }
-    }
-
-    // Helper function to extract email from partner string "Name (email@uark.edu)"
-    function parsePartner(groupStr) {
-        if (!groupStr) return null;
-        const match = groupStr.match(/(.+?)\s*\(([^)]+)\)/);
-        if (match) {
-            return { name: match[1].trim(), email: match[2].trim() };
-        }
-        return { name: groupStr.trim(), email: '' };
-    }
-
-    // 2. DATA LOADING
-    async function loadData() {
-        const statusMsg = document.getElementById('status-msg');
-        statusMsg.innerText = "Syncing...";
-        try {
-            const [hRes, sRes] = await Promise.all([
-                fetch(`${SCRIPT_URL}?action=getHistory`),
-                fetch(`${SCRIPT_URL}?action=getStatus`)
-            ]);
-            allBookings = await hRes.json();
-            statuses = await sRes.json();
-            
-            updateDots();
-            renderTable();
-            statusMsg.innerText = "Synced";
-        } catch(e) { 
-            console.error("Sync Error:", e);
-            statusMsg.innerText = "Error Syncing"; 
-        }
-    }
-
-    // 3. UI UPDATES (PRINTER STATUS)
-    function updateDots() {
-        ['Super9', 'SCARA'].forEach(p => {
-            if (isUpdating[p]) return; 
-
-            const state = p === 'Super9' ? statuses.super9 : statuses.scara;
-            const dot = document.getElementById(`dot-${p}`);
-            const btn = document.getElementById(`btn-${p}`);
-
-            if (dot) {
-                dot.className = 'status-dot ' + (state ? state.toLowerCase() : 'offline');
-            }
-            
-            if (btn) {
-                btn.innerText = state === "Online" ? "Set Offline" : "Set Online";
-                btn.style.backgroundColor = state === "Online" ? "#fee2e2" : "#d1fae5";
-            }
-        });
-    }
-
-    async function toggleStatus(p) {
-        const statusMsg = document.getElementById('status-msg');
+// 2. DATA LOADING
+async function loadData() {
+    const statusMsg = document.getElementById('status-msg');
+    statusMsg.innerText = "Syncing...";
+    try {
+        const [hRes, sRes] = await Promise.all([
+            fetch(`${SCRIPT_URL}?action=getHistory`),
+            fetch(`${SCRIPT_URL}?action=getStatus`)
+        ]);
+        allBookings = await hRes.json();
+        statuses = await sRes.json();
         
-        isUpdating[p] = true;
+        updateDots();
+        renderTable();
+        statusMsg.innerText = "Synced";
+    } catch(e) { 
+        console.error("Sync Error:", e);
+        statusMsg.innerText = "Error Syncing"; 
+    }
+}
 
+// 3. UI UPDATES (PRINTER STATUS)
+function updateDots() {
+    ['Super9', 'SCARA'].forEach(p => {
+        if (isUpdating[p]) return; 
+
+        const state = p === 'Super9' ? statuses.super9 : statuses.scara;
         const dot = document.getElementById(`dot-${p}`);
-        const isOnline = dot.classList.contains('online');
-        const nextStatus = isOnline ? "Offline" : "Online";
-        
-        dot.className = 'status-dot ' + nextStatus.toLowerCase();
         const btn = document.getElementById(`btn-${p}`);
+
+        if (dot) {
+            dot.className = 'status-dot ' + (state ? state.toLowerCase() : 'offline');
+        }
+        
         if (btn) {
-            btn.innerText = nextStatus === "Online" ? "Set Offline" : "Set Online";
-            btn.style.backgroundColor = nextStatus === "Online" ? "#fee2e2" : "#d1fae5";
+            btn.innerText = state === "Online" ? "Set Offline" : "Set Online";
+            btn.style.backgroundColor = state === "Online" ? "#fee2e2" : "#d1fae5";
         }
+    });
+}
 
-        statusMsg.innerText = `Updating ${p}...`;
+async function toggleStatus(p) {
+    const statusMsg = document.getElementById('status-msg');
+    isUpdating[p] = true;
 
-        fetch(SCRIPT_URL, { 
-            method: 'POST', 
-            mode: 'no-cors',
-            body: JSON.stringify({ action: 'togglePrinter', printer: p, status: nextStatus }) 
-        });
-
-        setTimeout(() => {
-            isUpdating[p] = false;
-            loadData(); 
-        }, 4000);
+    const dot = document.getElementById(`dot-${p}`);
+    const isOnline = dot.classList.contains('online');
+    const nextStatus = isOnline ? "Offline" : "Online";
+    
+    dot.className = 'status-dot ' + nextStatus.toLowerCase();
+    const btn = document.getElementById(`btn-${p}`);
+    if (btn) {
+        btn.innerText = nextStatus === "Online" ? "Set Offline" : "Set Online";
+        btn.style.backgroundColor = nextStatus === "Online" ? "#fee2e2" : "#d1fae5";
     }
 
-    // 4. TABLE RENDERING
-    function renderTable() {
-        const tbody = document.getElementById('table-body');
-        const dateFilter = document.getElementById('dash-date').value;
-        const violationMap = {};
+    statusMsg.innerText = `Updating ${p}...`;
 
-        // Calculate violation counts for both primary bookers and partners
-        allBookings.forEach(b => { 
-            if (b.bookerNoShow === "Yes" && b.email) {
-                violationMap[b.email] = (violationMap[b.email] || 0) + 1;
-            }
-            const partner = parsePartner(b.group);
-            if (b.partnerNoShow === "Yes" && partner && partner.email) {
-                violationMap[partner.email] = (violationMap[partner.email] || 0) + 1;
-            }
-        });
+    fetch(SCRIPT_URL, { 
+        method: 'POST', 
+        mode: 'no-cors',
+        body: JSON.stringify({ action: 'togglePrinter', printer: p, status: nextStatus }) 
+    });
 
-        const filtered = dateFilter ? allBookings.filter(b => b.date === dateFilter) : allBookings;
-        filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+    setTimeout(() => {
+        isUpdating[p] = false;
+        loadData(); 
+    }, 4000);
+}
 
-        tbody.innerHTML = filtered.map(row => {
-            const partner = parsePartner(row.group);
-            
-            const bookerMisses = violationMap[row.email] || 0;
-            const bookerFlagged = bookerMisses >= 3;
-            const bookerIsNoShow = row.bookerNoShow === "Yes";
-
-            const partnerEmail = partner ? partner.email : '';
-            const partnerMisses = partnerEmail ? (violationMap[partnerEmail] || 0) : 0;
-            const partnerFlagged = partnerMisses >= 3;
-            const partnerIsNoShow = row.partnerNoShow === "Yes";
-
-            return `
-                <tr class="${(bookerFlagged || partnerFlagged) ? 'violation-row' : ''}">
-                    <td style="font-weight:600;">${row.date}</td>
-                    <td>${row.time}</td>
-                    <td>
-                        <div style="margin-bottom: 6px;">
-                            <span class="${bookerFlagged ? 'flag-text' : ''}">${row.name}</span>
-                            ${bookerFlagged ? `<span class="flag-text"> ⚠️️ (${bookerMisses})</span>` : ''}
-                        </div>
-                        ${partner ? `
-                        <div style="font-size:0.8rem; color:#4b5563; border-top:1px dashed #e5e7eb; padding-top:4px;">
-                            <span class="${partnerFlagged ? 'flag-text' : ''}">Partner: ${partner.name}</span>${partnerFlagged ? `<span class="flag-text"> ⚠️ (${partnerMisses})</span>` : ''}
-                        </div>` : ''}
-                    </td>
-                    <td>
-                        <div>${row.email}</div>
-                        ${partner && partner.email ? `<div style="font-size:0.75rem; color:#6b7280; padding-top:4px;">${partner.email}</div>` : ''}
-                    </td>
-                    <td><span class="tag tag-${row.printer.toLowerCase()}">${row.printer}</span></td>
-                    <td>
-                        <div style="display:flex; flex-direction:column; gap:6px;">
-                            <div style="display:flex; gap:10px; align-items:center;">
-                                <input type="text" class="notes-input" value="${row.notes || ''}" 
-                                    onblur="updateNote(${row.id}, this.value)" placeholder="Add note...">
-                                
-                                <button onclick="markNoShow(${row.id}, ${!bookerIsNoShow}, 'booker')" 
-                                    title="Mark Booker Missed"
-                                    style="padding:5px 8px; border-radius:8px; cursor:pointer; font-size:0.7rem; font-weight:700; border:1px solid #ccc; background:${bookerIsNoShow ? '#ef4444; color:white;' : '#fff'}; white-space:nowrap;">
-                                    ${bookerIsNoShow ? 'Booker Missed' : 'Miss (Booker)'}
-                                </button>
-
-                                ${partner ? `
-                                <button onclick="markNoShow(${row.id},${!partnerIsNoShow}, 'partner')" 
-                                    title="Mark Partner Missed"
-                                    style="padding:5px 8px; border-radius:8px; cursor:pointer; font-size:0.7rem; font-weight:700; border:1px solid #ccc; background:${partnerIsNoShow ? '#ef4444; color:white;' : '#fff'}; white-space:nowrap;">
-                                    ${partnerIsNoShow ? 'Partner Missed' : 'Miss (Partner)'}
-                                </button>
-                                ` : ''}
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        }).join('');
-    }
-
-    // 5. ACTION HANDLERS (NOTES & NO-SHOW)
-    async function updateNote(id, val) {
-        const statusMsg = document.getElementById('status-msg');
-        statusMsg.innerText = "Saving...";
-        
-        fetch(SCRIPT_URL, { 
-            method: 'POST',
-            mode: 'no-cors', 
-            body: JSON.stringify({ action: 'updateNote', id: id, notes: val }) 
-        });
-
-        setTimeout(() => {
-            statusMsg.innerText = "Saved";
-            const booking = allBookings.find(b => b.id == id);
-            if(booking) booking.notes = val;
-        }, 800);
-    }
-
-    async function markNoShow(id, state, target = 'booker') {
-        const statusMsg = document.getElementById('status-msg');
-        statusMsg.innerText = "Updating...";
-        
-        fetch(SCRIPT_URL, { 
-            method: 'POST',
-            mode: 'no-cors',
-            body: JSON.stringify({ action: 'toggleNoShow', id: id, isNoShow: state, target: target }) 
-        });
-
-        setTimeout(() => {
-            loadData(); 
-        }, 800);
-    }
-
-    // 6. REPORTING
-    async function fetchAndReportCancelled() {
-        const statusMsg = document.getElementById('status-msg');
-        statusMsg.innerText = "Fetching Archive...";
-        
-        try {
-            const res = await fetch(`${SCRIPT_URL}?action=getArchive`);
-            const archiveData = await res.json();
-            
-            if (!archiveData || archiveData.length === 0) { 
-                alert("No canceled records found in the Archive sheet."); 
-                statusMsg.innerText = "Synced";
-                return; 
-            }
-            
-            printReport("Canceled Appointment Archive", archiveData);
-            statusMsg.innerText = "Synced";
-        } catch(e) { 
-            console.error(e);
-            statusMsg.innerText = "Error Fetching Archive"; 
+// Helper: Calculate violation counts for every student email
+function getViolationMap() {
+    const violationMap = {};
+    allBookings.forEach(b => { 
+        // 1. Process legacy bookerNoShow & partnerNoShow
+        if (b.bookerNoShow === "Yes" && b.email) {
+            const e = b.email.toLowerCase();
+            violationMap[e] = (violationMap[e] || 0) + 1;
         }
-    }
-
-    function generateReport(type) {
-        const violationMap = {};
-        allBookings.forEach(b => { 
-            if (b.bookerNoShow === "Yes" && b.email) {
-                violationMap[b.email] = (violationMap[b.email] || 0) + 1;
-            }
-            const partner = parsePartner(b.group);
-            if (b.partnerNoShow === "Yes" && partner && partner.email) {
-                violationMap[partner.email] = (violationMap[partner.email] || 0) + 1;
-            }
-        });
-
-        let reportData = allBookings;
-        let title = "Active Booking History";
-        if (type === 'violations') {
-            reportData = allBookings.filter(b => {
-                const partner = parsePartner(b.group);
-                const bookerViolations = (violationMap[b.email] || 0) >= 3;
-                const partnerViolations = partner && partner.email && (violationMap[partner.email] || 0) >= 3;
-                return bookerViolations || partnerViolations;
+        
+        // 2. Process list of missed emails from noshow string
+        if (b.noshow) {
+            const missedEmails = b.noshow.toLowerCase().split(',').map(e => e.trim());
+            missedEmails.forEach(e => {
+                if (e) violationMap[e] = (violationMap[e] || 0) + 1;
             });
-            title = "Violation Report (3+ Misses)";
         }
-        printReport(title, reportData, violationMap);
+    });
+    return violationMap;
+}
+
+// 4. TABLE RENDERING WITH DYNAMIC MISS BUTTONS
+function renderTable() {
+    const tbody = document.getElementById('table-body');
+    const dateFilter = document.getElementById('dash-date').value;
+    const violationMap = getViolationMap();
+
+    const filtered = dateFilter ? allBookings.filter(b => b.date === dateFilter) : allBookings;
+    filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#9ca3af; padding:20px;">No bookings found.</td></tr>`;
+        return;
     }
 
-    function printReport(title, data, vMap = {}) {
-        const win = window.open('', '_blank');
-        win.document.write('<html><head><title>' + title + '</title><style>body{font-family:sans-serif;padding:30px;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:12px;}th{background:#eee;}</style></head><body><h1>' + title + '</h1><p>Generated: ' + new Date().toLocaleString() + '</p><table><thead><tr><th>Date</th><th>Name</th><th>Email</th><th>Printer</th><th>Time</th><th>Notes</th>' + (Object.keys(vMap).length ? '<th>Misses</th>' : '') + '</tr></thead><tbody>' + data.map(r=>{
-            const partner = parsePartner(r.group);
-            const bookerMisses = vMap[r.email] || 0;
-            const partnerMisses = partner && partner.email ? (vMap[partner.email] || 0) : 0;
-            const displayNames = partner ? r.name + ' / Partner: ' + partner.name : r.name;
-            const displayEmails = partner && partner.email ? r.email + ' / ' + partner.email : r.email;
-            const displayMisses = partner ? 'Booker: ' + bookerMisses + ', Partner: ' + partnerMisses : bookerMisses;
+    tbody.innerHTML = filtered.map(row => {
+        const primaryEmail = (row.email || '').toLowerCase();
+        const primaryMisses = violationMap[primaryEmail] || 0;
+        const primaryFlagged = primaryMisses >= 3;
 
-            return '<tr><td>' + r.date + '</td><td>' + displayNames + '</td><td>' + displayEmails + '</td><td>' + r.printer + '</td><td>' + r.time + '</td><td>' + (r.notes||'') + '</td>' + (Object.keys(vMap).length ? '<td>' + displayMisses + '</td>' : '') + '</tr>';
-        }).join('') + '</tbody></table><script>window.print();</' + 'script></body></html>');
-        win.document.close();
+        const groupMembers = parseGroupMembers(row.group);
+        
+        // Combine legacy booker/partner states with new noshow string list
+        const missedList = (row.noshow || '').toLowerCase().split(',').map(e => e.trim());
+        if (row.bookerNoShow === "Yes") missedList.push(primaryEmail);
+
+        const isPrimaryMissed = missedList.includes(primaryEmail);
+
+        // Render Group Members in table cell
+        let groupHtml = '';
+        let anyGroupFlagged = false;
+
+        if (groupMembers.length > 0) {
+            groupHtml = groupMembers.map(m => {
+                const count = violationMap[m.email] || 0;
+                const flagged = count >= 3;
+                if (flagged) anyGroupFlagged = true;
+                return `<div style="font-size:0.8rem; color:#4b5563; margin-top:2px;">
+                    • ${m.name} <span style="font-size:0.75rem; color:#6b7280;">(${m.email})</span>
+                    ${flagged ? `<span class="flag-text"> ⚠️ (${count})</span>` : ''}
+                </div>`;
+            }).join('');
+        }
+
+        // Build individual "Mark Miss" buttons (Booker + each group member)
+        let missButtons = `
+            <button onclick="toggleIndividualMiss(${row.id}, '${primaryEmail}')" 
+                title="Mark Primary Booker Missed"
+                style="padding:4px 8px; border-radius:6px; cursor:pointer; font-size:0.65rem; font-weight:700; border:1px solid #ccc; background:${isPrimaryMissed ? '#ef4444; color:white;' : '#fff; color:#374151;'}; white-space:nowrap;">
+                ${isPrimaryMissed ? 'Missed (Booker)' : 'Miss (Booker)'}
+            </button>
+        `;
+
+        groupMembers.forEach(m => {
+            const isMemberMissed = missedList.includes(m.email);
+            const firstName = m.name.split(' ')[0] || 'Member';
+
+            missButtons += `
+                <button onclick="toggleIndividualMiss(${row.id}, '${m.email}')" 
+                    title="Mark ${m.name} Missed"
+                    style="padding:4px 8px; border-radius:6px; cursor:pointer; font-size:0.65rem; font-weight:700; border:1px solid #ccc; background:${isMemberMissed ? '#ef4444; color:white;' : '#fff; color:#374151;'}; white-space:nowrap;">
+                    ${isMemberMissed ? `Missed (${firstName})` : `Miss (${firstName})`}
+                </button>
+            `;
+        });
+
+        const isRowFlagged = primaryFlagged || anyGroupFlagged;
+
+        return `
+            <tr class="${isRowFlagged ? 'violation-row' : ''}">
+                <td style="font-weight:600;">${row.date}</td>
+                <td>${row.time}</td>
+                <td>
+                    <div class="${primaryFlagged ? 'flag-text' : ''}">${row.name} ${primaryFlagged ? `⚠️ (${primaryMisses})` : ''}</div>
+                    ${groupHtml}
+                </td>
+                <td>
+                    <div>${row.email}</div>
+                </td>
+                <td><span class="tag tag-${row.printer.toLowerCase()}">${row.printer}</span></td>
+                <td>
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                        <input type="text" class="notes-input" value="${row.notes || ''}" 
+                            onblur="updateNote(${row.id}, this.value)" placeholder="Add note...">
+                        <div style="display:flex; flex-wrap:wrap; gap:4px;">
+                            ${missButtons}
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// 5. ACTION HANDLERS
+async function updateNote(id, val) {
+    const statusMsg = document.getElementById('status-msg');
+    statusMsg.innerText = "Saving...";
+    
+    fetch(SCRIPT_URL, { 
+        method: 'POST',
+        mode: 'no-cors', 
+        body: JSON.stringify({ action: 'updateNote', id: id, notes: val }) 
+    });
+
+    setTimeout(() => {
+        statusMsg.innerText = "Saved";
+        const booking = allBookings.find(b => b.id == id);
+        if(booking) booking.notes = val;
+    }, 800);
+}
+
+// Toggle Missed status for a specific student's email
+async function toggleIndividualMiss(bookingId, emailToToggle) {
+    const statusMsg = document.getElementById('status-msg');
+    statusMsg.innerText = "Updating...";
+
+    const booking = allBookings.find(b => b.id == bookingId);
+    if (!booking) return;
+
+    let currentMissed = (booking.noshow || '').toLowerCase().split(',').map(e => e.trim()).filter(e => e !== '');
+
+    if (currentMissed.includes(emailToToggle)) {
+        currentMissed = currentMissed.filter(e => e !== emailToToggle);
+    } else {
+        currentMissed.push(emailToToggle);
     }
+
+    const newNoShowString = currentMissed.join(',');
+    booking.noshow = newNoShowString;
+
+    fetch(SCRIPT_URL, { 
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify({ action: 'toggleNoShow', id: bookingId, noshow: newNoShowString }) 
+    });
+
+    setTimeout(() => {
+        loadData(); 
+    }, 800);
+}
+
+// 6. REPORTING
+async function fetchAndReportCancelled() {
+    const statusMsg = document.getElementById('status-msg');
+    statusMsg.innerText = "Fetching Archive...";
+    
+    try {
+        const res = await fetch(`${SCRIPT_URL}?action=getArchive`);
+        const archiveData = await res.json();
+        
+        if (!archiveData || archiveData.length === 0) { 
+            alert("No canceled records found in the Archive sheet."); 
+            statusMsg.innerText = "Synced";
+            return; 
+        }
+        
+        printReport("Canceled Appointment Archive", archiveData);
+        statusMsg.innerText = "Synced";
+    } catch(e) { 
+        console.error(e);
+        statusMsg.innerText = "Error Fetching Archive"; 
+    }
+}
+
+function generateReport(type) {
+    const violationMap = getViolationMap();
+
+    let reportData = allBookings;
+    let title = "Active Booking History";
+
+    if (type === 'violations') {
+        reportData = allBookings.filter(b => {
+            const primaryMisses = violationMap[(b.email || '').toLowerCase()] || 0;
+            const groupMembers = parseGroupMembers(b.group);
+            const groupHasViolation = groupMembers.some(m => (violationMap[m.email] || 0) >= 3);
+            return primaryMisses >= 3 || groupHasViolation;
+        });
+        title = "Violation Report (3+ Misses)";
+    }
+    printReport(title, reportData, violationMap);
+}
+
+function printReport(title, data, vMap = {}) {
+    const win = window.open('', '_blank');
+    win.document.write('<html><head><title>' + title + '</title><style>body{font-family:sans-serif;padding:30px;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:12px;}th{background:#eee;}</style></head><body><h1>' + title + '</h1><p>Generated: ' + new Date().toLocaleString() + '</p><table><thead><tr><th>Date</th><th>Name</th><th>Email</th><th>Printer</th><th>Time</th><th>Notes</th>' + (Object.keys(vMap).length ? '<th>Misses</th>' : '') + '</tr></thead><tbody>' + data.map(r=>{
+        const groupMembers = parseGroupMembers(r.group);
+        const bookerMisses = vMap[(r.email || '').toLowerCase()] || 0;
+        
+        let displayNames = r.name;
+        let displayEmails = r.email;
+        let displayMisses = `Booker: ${bookerMisses}`;
+
+        if (groupMembers.length > 0) {
+            displayNames += ' / ' + groupMembers.map(m => m.name).join(', ');
+            displayEmails += ' / ' + groupMembers.map(m => m.email).join(', ');
+            displayMisses += ', Group: ' + groupMembers.map(m => `${m.name.split(' ')[0]}: ${vMap[m.email] || 0}`).join(', ');
+        }
+
+        return '<tr><td>' + r.date + '</td><td>' + displayNames + '</td><td>' + displayEmails + '</td><td>' + r.printer + '</td><td>' + r.time + '</td><td>' + (r.notes||'') + '</td>' + (Object.keys(vMap).length ? '<td>' + displayMisses + '</td>' : '') + '</tr>';
+    }).join('') + '</tbody></table><script>window.print();</' + 'script></body></html>');
+    win.document.close();
+}
 </script>
 </body>
 </html>
