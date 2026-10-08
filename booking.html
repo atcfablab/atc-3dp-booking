@@ -155,7 +155,7 @@
 
         const super9MondayTimes = ["01:00 PM - 02:30 PM", "02:30 PM - 03:00 PM", "03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
         const super9StandardTimes = ["01:00 PM - 01:30 PM", "01:30 PM - 02:00 PM", "02:00 PM - 02:30 PM", "02:30 PM - 03:00 PM", "03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
-        const scaraTimes = ["09:00 AM - 11:00 AM", "10:00 AM - 12:00 PM", "01:00 PM - 03:00 PM", "02:00 PM - 04:00 PM"];
+        const scaraTimes = ["01:00 PM - 02:00 PM", "02:00 PM - 03:00 PM", "03:00 PM - 04:00 PM"];
 
         function getTimesForDate(dateStr) {
             if (printer === "SCARA") return scaraTimes;
@@ -260,11 +260,19 @@
             document.getElementById('form-container').style.display = "none";
             selectedIndices = [];
 
+// Days of the week: 0 = Sun, 1 = Mon, 2 = Tue, 3 = Wed, 4 = Thu, 5 = Fri, 6 = Sat
+
+// Super9 Day Restriction			
             if (printer === "Super9" && ![1, 3, 5].includes(day)) {
                 grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>Super9 is only available on Mon, Wed, and Fri. Please select a valid date.</div>";
                 return;
             }
 
+			// SCARA Day Restriction
+if (printer === "SCARA" && ![1, 3, 5].includes(day)) {
+    grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>SCARA is only available on Mon, Wed, and Fri. Please select a valid date.</div>";
+    return;
+}
             try {
                 const response = await fetch(`${SCRIPT_URL}?action=getInitialData&printer=${printer}&date=${selectedDate}`);
                 const initialData = await response.json();
