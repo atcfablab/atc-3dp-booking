@@ -471,94 +471,93 @@
         }
 
         async function handleConfirm() {
-            const name = document.getElementById('user-name').value.trim();
-            const email = document.getElementById('user-email').value.trim().toLowerCase();
-            const btn = document.getElementById('submit-btn'); 
+    const name = document.getElementById('user-name').value.trim();
+    const email = document.getElementById('user-email').value.trim().toLowerCase();
+    const groupInput = document.getElementById('group-members') ? document.getElementById('group-members').value.trim() : "";
+    const btn = document.getElementById('submit-btn'); 
 
-            if (!name || !email) return alert("Please fill in both your full name and email.");
+    // 1. Basic Required Field Check
+    if (!name || !email) return alert("Please fill in both your full name and email.");
 
-            const nameParts = name.split(/\s+/).filter(part => part.length > 0);
-            if (nameParts.length < 2) {
-                return alert("Please enter your full first and last name (e.g., Jane Doe).");
-            }
+    // 2. Main User Full Name Check (Requires at least First and Last Name)
+    const mainNameParts = name.split(/\s+/).filter(part => part.length > 0);
+    if (mainNameParts.length < 2) {
+        return alert("Please enter your full first and last name (e.g., Jane Doe).");
+    }
 
-            if (!email.endsWith('@uark.edu')) {
-                return alert("⚠️ Access Restricted: You must use an official @uark.edu email address to complete a booking.");
-            }
+    // 3. Main User @uark.edu Email Domain Check
+    if (!email.endsWith('@uark.edu')) {
+        return alert("⚠️ Access Restricted: You must use an official @uark.edu email address to complete a booking.");
+    }
 
-            let groupInfo = "";
-
-            if (printer === "SCARA") {
-                const scaraMembers = document.getElementById('scara-group-members').value.trim();
-                if (!scaraMembers) {
-                    return alert("⚠️ SCARA Requirement: Please list your group members' names and emails.");
-                }
-                groupInfo = scaraMembers;
-            } else {
-                const hasPartner = document.getElementById('has-partner').checked;
-                if (hasPartner) {
-                    const partnerName = document.getElementById('partner-name').value.trim();
-                    const partnerEmail = document.getElementById('partner-email').value.trim().toLowerCase();
-
-                    if (!partnerName || !partnerEmail) {
-                        return alert("Please fill in both the full name and email address for your partner.");
-                    }
-
-                    const partnerNameParts = partnerName.split(/\s+/).filter(part => part.length > 0);
-                    if (partnerNameParts.length < 2) {
-                        return alert("Please enter your partner's full first and last name (e.g., John Smith).");
-                    }
-
-                    if (!partnerEmail.endsWith('@uark.edu')) {
-                        return alert("⚠️ Partner Email Restricted: Your partner must have an official @uark.edu email address.");
-                    }
-
-                    groupInfo = `${partnerName} (${partnerEmail})`;
-                }
-            }
-
-            btn.disabled = true; 
-            btn.style.opacity = "0.7";
-            btn.style.cursor = "not-allowed";
-            btn.innerHTML = `<span class="spinner"></span> Verifying Reservation...`;
-
-            const currentTimes = getTimesForDate(dateInput.value);
-
-            const payload = { 
-                action: 'book', 
-                name, 
-                email, 
-                printer, 
-                date: dateInput.value, 
-                time: selectedIndices.map(i => currentTimes[i]).join(', '), 
-                group: groupInfo
-            };
-
-            try {
-                const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-                const result = await response.json(); 
-
-                if (result.status === "success") {
-                    alert("Reservation Confirmed!");
-                    window.location.href = "index.html";
-                } else {
-                    alert("⚠️ BOOKING STOPPED: " + result.message);
-                    
-                    btn.disabled = false;
-                    btn.style.opacity = "1";
-                    btn.style.cursor = "pointer";
-                    btn.innerText = "Complete Reservation";
-                    renderGrid();
-                }
-            } catch (e) { 
-                console.error("Fetch Error:", e);
-                alert("Error submitting booking. Please refresh and try again."); 
-                btn.disabled = false;
-                btn.style.opacity = "1";
-                btn.style.cursor = "pointer";
-                btn.innerText = "Complete Reservation";
-            }
+    // 4. Group Member Full Name & @uark.edu Email Check (SCARA)
+    if (printer === "SCARA") {
+        if (!groupInput) {
+            return alert("⚠️ SCARA Requirement: You must list all group members along with their @uark.edu emails.");
         }
+
+        // Split by comma
+        const members = groupInput.split(',').map(m => m.trim()).filter(m => m.length > 0);
+
+        const isGroupValid = members.every(member => {
+            // Check for @uark.edu email within the member entry
+            const emailMatch = member.match(/\b[A-Za-z0-9._%+-]+@uark\.edu\b/i);
+            if (!emailMatch) return false;
+
+            // Remove the email portion to extract and check the full name
+            const nameOnly = member.replace(emailMatch[0], '').replace(/[()]/g, '').trim();
+            const nameParts = nameOnly.split(/\s+/).filter(p => p.length > 0);
+
+            // Requires at least First and Last Name
+            return nameParts.length >= 2;
+        });
+
+        if (!isGroupValid) {
+            return alert("⚠️ Group Requirement: Every group member must include a full First and Last name AND a valid @uark.edu email.\n\nExample:\nJane Doe jane@uark.edu, John Smith jsmith@uark.edu");
+        }
+    }
+
+    // --- PROCEED WITH SUBMISSION ---
+    btn.disabled = true; 
+    btn.style.opacity = "0.7";
+    btn.style.cursor = "not-allowed";
+    btn.innerHTML = `<span class="spinner"></span> Verifying Reservation...`;
+
+    const payload = { 
+        action: 'book', 
+        name, 
+        email, 
+        printer, 
+        date: dateInput.value, 
+        time: selectedIndices.map(i => (printer === "Super9" ? super9Times : scaraTimes)[i]).join(', '), 
+        group: groupInput
+    };
+
+    try {
+        const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+        const result = await response.json(); 
+
+        if (result.status === "success") {
+            alert("Reservation Confirmed!");
+            window.location.href = "index.html";
+        } else {
+            alert("⚠️ BOOKING STOPPED: " + result.message);
+            
+            btn.disabled = false;
+            btn.style.opacity = "1";
+            btn.style.cursor = "pointer";
+            btn.innerText = "Complete Reservation";
+            renderGrid();
+        }
+    } catch (e) { 
+        console.error("Fetch Error:", e);
+        alert("Error submitting booking. Please refresh and try again."); 
+        btn.disabled = false;
+        btn.style.opacity = "1";
+        btn.style.cursor = "pointer";
+        btn.innerText = "Complete Reservation";
+    }
+}
 
         async function lookupBookings() {
             const n = document.getElementById('lookup-name').value.trim().toLowerCase();
