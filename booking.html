@@ -276,7 +276,7 @@
 
     // --- STAFF OVERRIDES (Holidays & Special Openings) ---
     const specialOpenDates = [];   // Add YYYY-MM-DD strings here to force open (e.g., ["2026-03-24"])
-    const specialClosedDates = []; // Add YYYY-MM-DD strings here to close for holidays (e.g., ["2026-05-25"])
+    const specialClosedDates = ["2026-10-16", "2026-10-19"]; // Add YYYY-MM-DD strings here to close for holidays (e.g., ["2026-05-25"])
     
     const isSpecialOpen = specialOpenDates.includes(selectedDate);
     const isSpecialClosed = specialClosedDates.includes(selectedDate);
