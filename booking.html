@@ -159,18 +159,18 @@
         let selectedIndices = [];
 
         // Increment this version string whenever you make changes to the rules list!
-        const CURRENT_RULES_VERSION = "v2.2";
+        const CURRENT_RULES_VERSION = "v2.3";
 
         const super9MondayTimes = ["01:00 PM - 02:30 PM", "02:30 PM - 03:00 PM", "03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
         const super9StandardTimes = ["01:00 PM - 01:30 PM", "01:30 PM - 02:00 PM", "02:00 PM - 02:30 PM", "02:30 PM - 03:00 PM", "03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
         
-        // Super9 Special Hybrid Block for Wednesday, Oct 28
-        const super9Oct28Times = ["01:00 PM - 02:30 PM", "02:30 PM - 03:00 PM"]; 
+        // Super9 Single Unified Hybrid Block for Wednesday, Oct 28 (1:00 PM - 3:00 PM)
+        const super9Oct28Times = ["01:00 PM - 03:00 PM"]; 
 
         const scaraStandardTimes = ["01:00 PM - 02:00 PM", "02:00 PM - 03:00 PM", "03:00 PM - 04:00 PM"];
         
-        // SCARA Special Hybrid Wood Prep Block for Wednesday (Oct 28) & Friday (Oct 30)
-        const scaraWoodPrepTimes = ["03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
+        // SCARA Single Unified Wood Prep Block for Wednesday (Oct 28) & Friday (Oct 30) (3:00 PM - 4:30 PM)
+        const scaraWoodPrepTimes = ["03:00 PM - 04:30 PM"];
 
         function getTimesForDate(dateStr) {
             if (printer === "SCARA") {
@@ -194,7 +194,7 @@
         const rules = {
             "Super9": [
                 "<strong>Refresh the page before booking anything to ensure the website is up to date and that there are no new notices or warnings.</strong>",
-				"<strong>NOTICE FOR WEDNESDAY, OCT 28:</strong> Super9 availability for this Wednesday is limited to a single 1:00 PM – 3:00 PM hybrid block for last-minute clay prep and extended print time.",
+				"<strong>NOTICE FOR WEDNESDAY, OCT 28:</strong> Super9 availability for this Wednesday is limited to a single unified 1:00 PM – 3:00 PM block for last-minute clay prep and extended print time.",
 				"<strong>REMINDER: Be aware of the ATC Lab clothing policies.</strong> If you are not wearing the proper clothing, you will be denied access to the space for the day unless you can aquire the proper clothing.",
 				"<strong>Clay preparation is required every Monday from 1:00–2:30 PM.</strong> This task requires two individual students to sign up independently. Each student must book their own slot to help load clay for the week. If clay preparation is not necessary or available during a particular week, you will be notified beforehand via email or your professor.",
 				"<strong>A maximum of two students may sign up for the Clay Prep slot.</strong>",
@@ -213,7 +213,7 @@
             ],
             "SCARA": [
                 "<strong>Refresh the page before booking anything to ensure the website is up to date and that there are no new notices or warnings.</strong>",
-                "<strong>NOTICE FOR WED, OCT 28 & FRI, OCT 30:</strong> SCARA availability on these days includes a 3:00 PM – 4:30 PM block for Wood Prep/Mixing.",
+                "<strong>NOTICE FOR WED, OCT 28 & FRI, OCT 30:</strong> SCARA availability on these days includes a single unified 3:00 PM – 4:30 PM block for Wood Prep/Mixing.",
                 "<strong>REMINDER: Be aware of the ATC Lab clothing policies.</strong> If you are not wearing the proper clothing, you will be denied access to the lab spaces for the day unless you can acquire the proper clothing.",
                 "<strong>Until further notice, the bookings you are making are NOT for print time.</strong> It is time you will use to practice mixing and testing the wood paste.",
 				"<strong>Booking sessions are for groups only.</strong> Wood paste sessions are not available for individual bookers.",
@@ -620,7 +620,7 @@
                     const isClayPrepSlot = (b.printer === "Super9" && isMonday && b.time.includes("01:00 PM - 02:30 PM"));
                     
                     const slotTag = isClayPrepSlot 
-                        ? ' <span style="background:#f59e0b; color:#fff; font-size:0.65rem; padding:2px 6px; border-radius:6px; font-weight:800; text-transform:uppercase;">Clay Prep</span>' 
+                        ? ' <span style="background:#f59e0b; color:#fff; font-size:0.65rem; padding:2px 6px; border-radius:6px; font-weight:800; text-transform:uppercase; Clay Prep</span>' 
                         : '';
 
                     return `<div class="booking-item">
