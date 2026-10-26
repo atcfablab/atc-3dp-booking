@@ -159,7 +159,7 @@
         let selectedIndices = [];
 
         // Increment this version string whenever you make changes to the rules list!
-        const CURRENT_RULES_VERSION = "v2.4";
+        const CURRENT_RULES_VERSION = "v2.5";
 
         const super9MondayTimes = ["01:00 PM - 02:30 PM", "02:30 PM - 03:00 PM", "03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
         const super9StandardTimes = ["01:00 PM - 01:30 PM", "01:30 PM - 02:00 PM", "02:00 PM - 02:30 PM", "02:30 PM - 03:00 PM", "03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
@@ -170,17 +170,19 @@
         // Super9 Special Restriction for Friday, Oct 30 (1:00 PM - 3:00 PM in 30 min increments)
         const super9Oct30Times = ["01:00 PM - 01:30 PM", "01:30 PM - 02:00 PM", "02:00 PM - 02:30 PM", "02:30 PM - 03:00 PM"];
 
-        // SCARA Standard 1-hour printing slots from 1:00 PM - 3:00 PM
-        const scaraStandardTimes = ["01:00 PM - 02:00 PM", "02:00 PM - 03:00 PM"];
+        // SCARA Standard printing slots
+        const scaraStandardTimes = ["01:00 PM - 02:00 PM", "02:00 PM - 03:00 PM", "03:00 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
         
-        // SCARA Special Hybrid Wood Prep Blocks for Wednesday (Oct 28) & Friday (Oct 30) (1-2pm, 2-3pm printing + 3-4:30pm Wood Prep)
-        const scaraWoodPrepTimes = ["01:00 PM - 02:00 PM", "02:00 PM - 03:00 PM", "03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
+        // SCARA Wednesday Oct 28: Only Wood Prep/Mixing from 3:00 PM - 4:30 PM
+        const scaraOct28Times = ["03:00 PM - 04:30 PM"];
+
+        // SCARA Friday Oct 30: Printing slots (1-3pm) + Wood Prep slot (3-4:30pm)
+        const scaraOct30Times = ["01:00 PM - 02:00 PM", "02:00 PM - 03:00 PM", "03:00 PM - 04:30 PM"];
 
         function getTimesForDate(dateStr) {
             if (printer === "SCARA") {
-                if (dateStr === "2026-10-28" || dateStr === "2026-10-30") {
-                    return scaraWoodPrepTimes;
-                }
+                if (dateStr === "2026-10-28") return scaraOct28Times;
+                if (dateStr === "2026-10-30") return scaraOct30Times;
                 return scaraStandardTimes;
             }
             
@@ -222,7 +224,8 @@
             ],
             "SCARA": [
                 "<strong>Refresh the page before booking anything to ensure the website is up to date and that there are no new notices or warnings.</strong>",
-                "<strong>NOTICE FOR WED, OCT 28 & FRI, OCT 30:</strong> SCARA availability on these days includes 1-hour printing slots from 1:00 PM – 3:00 PM, followed by a 3:00 PM – 4:30 PM block for Wood Prep/Mixing.",
+                "<strong>NOTICE FOR WED, OCT 28:</strong> SCARA availability is dedicated exclusively to Wood Prep/Mixing from 3:00 PM – 4:30 PM.",
+                "<strong>NOTICE FOR FRI, OCT 30:</strong> SCARA availability includes 1-hour printing slots from 1:00 PM – 3:00 PM, followed by a Wood Prep/Mixing block from 3:00 PM – 4:30 PM.",
                 "<strong>REMINDER: Be aware of the ATC Lab clothing policies.</strong> If you are not wearing the proper clothing, you will be denied access to the lab spaces for the day unless you can acquire the proper clothing.",
                 "<strong>Until further notice, the bookings you are making are NOT for print time.</strong> It is time you will use to practice mixing and testing the wood paste.",
 				"<strong>Booking sessions are for groups only.</strong> Wood paste sessions are not available for individual bookers.",
@@ -367,6 +370,10 @@
 
                     const isClayPrep = (printer === "Super9" && isMonday && i === 0);
                     const isPriorityPrintingSlot = (printer === "Super9" && isMonday && (i === 1 || i === 2));
+                    
+                    // Check if this slot is the SCARA Wood Prep slot on Wed (Oct 28) or Fri (Oct 30)
+                    const isScaraWoodPrep = (printer === "SCARA" && ((selectedDate === "2026-10-28" && i === 0) || (selectedDate === "2026-10-30" && i === 2)));
+
                     const maxCapacity = isClayPrep ? 2 : 1;
                     const isFull = bookingCount >= maxCapacity;
 
@@ -374,6 +381,12 @@
                         const badge = document.createElement('span');
                         badge.className = 'clay-badge';
                         badge.innerText = `Clay Prep (${bookingCount}/2)`;
+                        slot.appendChild(badge);
+                    } else if (isScaraWoodPrep) {
+                        const badge = document.createElement('span');
+                        badge.className = 'clay-badge';
+                        badge.style.background = '#0284c7'; // Blue badge for Wood Prep
+                        badge.innerText = `Wood Prep / Mixing`;
                         slot.appendChild(badge);
                     }
 
