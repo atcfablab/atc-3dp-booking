@@ -168,7 +168,12 @@
         function getTimesForDate(dateStr) {
             if (printer === "SCARA") return scaraTimes;
             if (!dateStr) return super9StandardTimes;
-            
+
+			// Check for the specific hybrid Wednesday override
+            if (printer === "Super9" && dateStr === "2026-10-28") {
+                return super9Oct28Times;
+            }
+			
             const dateObj = new Date(dateStr + 'T00:00:00');
             const day = dateObj.getDay(); 
             return (day === 1) ? super9MondayTimes : super9StandardTimes;
@@ -299,12 +304,6 @@
         grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>SCARA is only available on Mon, Wed, and Fri. Please select a valid date.</div>";
         return;
     }
-
-			// Temporary override for this Wednesday only (Oct 28, 2026)
-if (printer === "Super9" && selectedDate === "2026-10-28") {
-    // Keep only slots from 1:00 PM to 3:00 PM (first 4 slots: indices 0 to 3)
-    times = times.slice(0, 4); 
-}
 
     // ... rest of your fetch and slot rendering code ...
 
