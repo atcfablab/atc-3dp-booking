@@ -159,21 +159,33 @@
         let selectedIndices = [];
 
         // Increment this version string whenever you make changes to the rules list!
-        const CURRENT_RULES_VERSION = "v2.1";
+        const CURRENT_RULES_VERSION = "v2.2";
 
         const super9MondayTimes = ["01:00 PM - 02:30 PM", "02:30 PM - 03:00 PM", "03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
         const super9StandardTimes = ["01:00 PM - 01:30 PM", "01:30 PM - 02:00 PM", "02:00 PM - 02:30 PM", "02:30 PM - 03:00 PM", "03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
-        const scaraTimes = ["01:00 PM - 02:00 PM", "02:00 PM - 03:00 PM", "03:00 PM - 04:00 PM"];
+        
+        // Super9 Special Hybrid Block for Wednesday, Oct 28
+        const super9Oct28Times = ["01:00 PM - 02:30 PM", "02:30 PM - 03:00 PM"]; 
+
+        const scaraStandardTimes = ["01:00 PM - 02:00 PM", "02:00 PM - 03:00 PM", "03:00 PM - 04:00 PM"];
+        
+        // SCARA Special Hybrid Wood Prep Block for Wednesday (Oct 28) & Friday (Oct 30)
+        const scaraWoodPrepTimes = ["03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
 
         function getTimesForDate(dateStr) {
-            if (printer === "SCARA") return scaraTimes;
+            if (printer === "SCARA") {
+                if (dateStr === "2026-10-28" || dateStr === "2026-10-30") {
+                    return scaraWoodPrepTimes;
+                }
+                return scaraStandardTimes;
+            }
+            
             if (!dateStr) return super9StandardTimes;
-
-			// Check for the specific hybrid Wednesday override
+            
             if (printer === "Super9" && dateStr === "2026-10-28") {
                 return super9Oct28Times;
             }
-			
+
             const dateObj = new Date(dateStr + 'T00:00:00');
             const day = dateObj.getDay(); 
             return (day === 1) ? super9MondayTimes : super9StandardTimes;
@@ -181,8 +193,8 @@
 
         const rules = {
             "Super9": [
-                "<strong> Refresh the page before booking anything to ensure the website is up to date and that there are no new notices or warnings.",
-				"<strong>NOTICE FOR WEDNESDAY, OCT 28:</strong> The available time slot will include Clay Prep from 1:00 pm - 2:30 pm and a 30 minute print slot from 2:30 pm - 3:00 pm.",
+                "<strong>Refresh the page before booking anything to ensure the website is up to date and that there are no new notices or warnings.</strong>",
+				"<strong>NOTICE FOR WEDNESDAY, OCT 28:</strong> Super9 availability for this Wednesday is limited to a single 1:00 PM – 3:00 PM hybrid block for last-minute clay prep and extended print time.",
 				"<strong>REMINDER: Be aware of the ATC Lab clothing policies.</strong> If you are not wearing the proper clothing, you will be denied access to the space for the day unless you can aquire the proper clothing.",
 				"<strong>Clay preparation is required every Monday from 1:00–2:30 PM.</strong> This task requires two individual students to sign up independently. Each student must book their own slot to help load clay for the week. If clay preparation is not necessary or available during a particular week, you will be notified beforehand via email or your professor.",
 				"<strong>A maximum of two students may sign up for the Clay Prep slot.</strong>",
@@ -201,6 +213,7 @@
             ],
             "SCARA": [
                 "<strong>Refresh the page before booking anything to ensure the website is up to date and that there are no new notices or warnings.</strong>",
+                "<strong>NOTICE FOR WED, OCT 28 & FRI, OCT 30:</strong> SCARA availability on these days includes a 3:00 PM – 4:30 PM block for Wood Prep/Mixing.",
                 "<strong>REMINDER: Be aware of the ATC Lab clothing policies.</strong> If you are not wearing the proper clothing, you will be denied access to the lab spaces for the day unless you can acquire the proper clothing.",
                 "<strong>Until further notice, the bookings you are making are NOT for print time.</strong> It is time you will use to practice mixing and testing the wood paste.",
 				"<strong>Booking sessions are for groups only.</strong> Wood paste sessions are not available for individual bookers.",
@@ -268,44 +281,39 @@
         }
 
         async function renderGrid() {
-    const grid = document.getElementById('time-grid');
-    const selectedDate = dateInput.value;
-    if (!selectedDate) return;
+            const grid = document.getElementById('time-grid');
+            const selectedDate = dateInput.value;
+            if (!selectedDate) return;
 
-    const dateObj = new Date(selectedDate + 'T00:00:00');
-    const day = dateObj.getDay();
+            const dateObj = new Date(selectedDate + 'T00:00:00');
+            const day = dateObj.getDay();
 
-    grid.innerHTML = "Checking availability...";
-    document.getElementById('slot-container').style.display = "block";
-    document.getElementById('form-container').style.display = "none";
-    selectedIndices = [];
+            grid.innerHTML = "Checking availability...";
+            document.getElementById('slot-container').style.display = "block";
+            document.getElementById('form-container').style.display = "none";
+            selectedIndices = [];
 
-    // --- STAFF OVERRIDES (Holidays & Special Openings) ---
-    const specialOpenDates = [];   // Add YYYY-MM-DD strings here to force open (e.g., ["2026-03-24"])
-    const specialClosedDates = ["2026-10-16", "2026-10-19"]; // Add YYYY-MM-DD strings here to close for holidays (e.g., ["2026-05-25"])
-    
-    const isSpecialOpen = specialOpenDates.includes(selectedDate);
-    const isSpecialClosed = specialClosedDates.includes(selectedDate);
+            // --- STAFF OVERRIDES (Holidays & Special Openings) ---
+            const specialOpenDates = [];   
+            const specialClosedDates = ["2026-10-16", "2026-10-19"]; 
+            
+            const isSpecialOpen = specialOpenDates.includes(selectedDate);
+            const isSpecialClosed = specialClosedDates.includes(selectedDate);
 
-    // 1. Check for Holiday / Special Closure (Applies to all printers)
-    if (isSpecialClosed) {
-        grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>The lab is closed today for a holiday or other event.</div>";
-        return;
-    }
+            if (isSpecialClosed) {
+                grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>The lab is closed today for a holiday or other event.</div>";
+                return;
+            }
 
-    // 2. Super9 Day Restriction (respects special overrides)
-    if (printer === "Super9" && ![1, 3, 5].includes(day) && !isSpecialOpen) {
-        grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>Super9 is only available on Mon, Wed, and Fri. Please select a valid date.</div>";
-        return;
-    }
+            if (printer === "Super9" && ![1, 3, 5].includes(day) && !isSpecialOpen) {
+                grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>Super9 is only available on Mon, Wed, and Fri. Please select a valid date.</div>";
+                return;
+            }
 
-    // 3. SCARA Day Restriction (respects special overrides)
-    if (printer === "SCARA" && ![1, 3, 5].includes(day) && !isSpecialOpen) {
-        grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>SCARA is only available on Mon, Wed, and Fri. Please select a valid date.</div>";
-        return;
-    }
-
-    // ... rest of your fetch and slot rendering code ...
+            if (printer === "SCARA" && ![1, 3, 5].includes(day) && !isSpecialOpen) {
+                grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>SCARA is only available on Mon, Wed, and Fri. Please select a valid date.</div>";
+                return;
+            }
 
             try {
                 const response = await fetch(`${SCRIPT_URL}?action=getInitialData&printer=${printer}&date=${selectedDate}`);
@@ -385,7 +393,6 @@
             const isClayPrep = (printer === "Super9" && day === 1 && idx === 0);
 
             if (printer === "SCARA") {
-                // Single slot selection for SCARA
                 if (selectedIndices.includes(idx)) {
                     selectedIndices = [];
                 } else {
@@ -449,7 +456,6 @@
 
         function updateVisuals() {
             const times = getTimesForDate(dateInput.value);
-            
             const dateObj = new Date(dateInput.value + 'T00:00:00');
             const day = dateObj.getDay();
 
@@ -489,7 +495,7 @@
             document.getElementById('form-container').style.display = "none";
             document.getElementById('has-partner').checked = false;
             document.getElementById('partner-box').style.display = 'none';
-            document.getElementById('scara-group-members').value = '';
+            document.getElementById('group-members').value = '';
         }
 
         function toggleView(view) {
@@ -498,93 +504,84 @@
         }
 
         async function handleConfirm() {
-    const name = document.getElementById('user-name').value.trim();
-    const email = document.getElementById('user-email').value.trim().toLowerCase();
-    const groupInput = document.getElementById('group-members') ? document.getElementById('group-members').value.trim() : "";
-    const btn = document.getElementById('submit-btn'); 
+            const name = document.getElementById('user-name').value.trim();
+            const email = document.getElementById('user-email').value.trim().toLowerCase();
+            const groupInput = document.getElementById('group-members') ? document.getElementById('group-members').value.trim() : "";
+            const btn = document.getElementById('submit-btn'); 
 
-    // 1. Basic Required Field Check
-    if (!name || !email) return alert("Please fill in both your full name and email.");
+            if (!name || !email) return alert("Please fill in both your full name and email.");
 
-    // 2. Main User Full Name Check (Requires at least First and Last Name)
-    const mainNameParts = name.split(/\s+/).filter(part => part.length > 0);
-    if (mainNameParts.length < 2) {
-        return alert("Please enter your full first and last name (e.g., Jane Doe).");
-    }
+            const mainNameParts = name.split(/\s+/).filter(part => part.length > 0);
+            if (mainNameParts.length < 2) {
+                return alert("Please enter your full first and last name (e.g., Jane Doe).");
+            }
 
-    // 3. Main User @uark.edu Email Domain Check
-    if (!email.endsWith('@uark.edu')) {
-        return alert("⚠️ Access Restricted: You must use an official @uark.edu email address to complete a booking.");
-    }
+            if (!email.endsWith('@uark.edu')) {
+                return alert("⚠️ Access Restricted: You must use an official @uark.edu email address to complete a booking.");
+            }
 
-    // 4. Group Member Full Name & @uark.edu Email Check (SCARA)
-    if (printer === "SCARA") {
-        if (!groupInput) {
-            return alert("⚠️ SCARA Requirement: You must list all group members along with their @uark.edu emails.");
+            if (printer === "SCARA") {
+                if (!groupInput) {
+                    return alert("⚠️ SCARA Requirement: You must list all group members along with their @uark.edu emails.");
+                }
+
+                const members = groupInput.split(',').map(m => m.trim()).filter(m => m.length > 0);
+
+                const isGroupValid = members.every(member => {
+                    const emailMatch = member.match(/\b[A-Za-z0-9._%+-]+@uark\.edu\b/i);
+                    if (!emailMatch) return false;
+
+                    const nameOnly = member.replace(emailMatch[0], '').replace(/[()]/g, '').trim();
+                    const nameParts = nameOnly.split(/\s+/).filter(p => p.length > 0);
+
+                    return nameParts.length >= 2;
+                });
+
+                if (!isGroupValid) {
+                    return alert("⚠️ Group Requirement: Every group member must include a full First and Last name AND a valid @uark.edu email.\n\nExample:\nJane Doe jane@uark.edu, John Smith jsmith@uark.edu");
+                }
+            }
+
+            btn.disabled = true; 
+            btn.style.opacity = "0.7";
+            btn.style.cursor = "not-allowed";
+            btn.innerHTML = `<span class="spinner"></span> Verifying Reservation...`;
+
+            const payload = { 
+                action: 'book', 
+                name, 
+                email, 
+                printer, 
+                date: dateInput.value, 
+                time: selectedIndices.map(i => getTimesForDate(dateInput.value)[i]).join(', '), 
+                group: groupInput
+            };
+
+            try {
+                const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+                const result = await response.json(); 
+
+                if (result.status === "success") {
+                    alert("Reservation Confirmed!");
+                    window.location.href = "index.html";
+                } else {
+                    alert("⚠️ BOOKING STOPPED: " + result.message);
+                    
+                    btn.disabled = false;
+                    btn.style.opacity = "1";
+                    btn.style.cursor = "pointer";
+                    btn.innerText = "Complete Reservation";
+                    renderGrid();
+                }
+            } catch (e) { 
+                console.error("Fetch Error:", e);
+                alert("Error submitting booking. Please refresh and try again."); 
+                btn.disabled = false;
+                btn.style.opacity = "1";
+                btn.style.cursor = "pointer";
+                btn.innerText = "Complete Reservation";
+            }
         }
-
-        // Split by comma
-        const members = groupInput.split(',').map(m => m.trim()).filter(m => m.length > 0);
-
-        const isGroupValid = members.every(member => {
-            // Check for @uark.edu email within the member entry
-            const emailMatch = member.match(/\b[A-Za-z0-9._%+-]+@uark\.edu\b/i);
-            if (!emailMatch) return false;
-
-            // Remove the email portion to extract and check the full name
-            const nameOnly = member.replace(emailMatch[0], '').replace(/[()]/g, '').trim();
-            const nameParts = nameOnly.split(/\s+/).filter(p => p.length > 0);
-
-            // Requires at least First and Last Name
-            return nameParts.length >= 2;
-        });
-
-        if (!isGroupValid) {
-            return alert("⚠️ Group Requirement: Every group member must include a full First and Last name AND a valid @uark.edu email.\n\nExample:\nJane Doe jane@uark.edu, John Smith jsmith@uark.edu");
-        }
-    }
-
-    // --- PROCEED WITH SUBMISSION ---
-    btn.disabled = true; 
-    btn.style.opacity = "0.7";
-    btn.style.cursor = "not-allowed";
-    btn.innerHTML = `<span class="spinner"></span> Verifying Reservation...`;
-
-    const payload = { 
-        action: 'book', 
-        name, 
-        email, 
-        printer, 
-        date: dateInput.value, 
-        time: selectedIndices.map(i => (printer === "Super9" ? super9Times : scaraTimes)[i]).join(', '), 
-        group: groupInput
-    };
-
-    try {
-        const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-        const result = await response.json(); 
-
-        if (result.status === "success") {
-            alert("Reservation Confirmed!");
-            window.location.href = "index.html";
-        } else {
-            alert("⚠️ BOOKING STOPPED: " + result.message);
-            
-            btn.disabled = false;
-            btn.style.opacity = "1";
-            btn.style.cursor = "pointer";
-            btn.innerText = "Complete Reservation";
-            renderGrid();
-        }
-    } catch (e) { 
-        console.error("Fetch Error:", e);
-        alert("Error submitting booking. Please refresh and try again."); 
-        btn.disabled = false;
-        btn.style.opacity = "1";
-        btn.style.cursor = "pointer";
-        btn.innerText = "Complete Reservation";
-    }
-}
 
         async function lookupBookings() {
             const n = document.getElementById('lookup-name').value.trim().toLowerCase();
