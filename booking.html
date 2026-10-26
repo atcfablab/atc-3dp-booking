@@ -16,12 +16,6 @@
         .rules-card li { margin-bottom: 12px; }
         input[type="date"], .text-input { width: 100%; padding: 15px; border-radius: 12px; border: 1px solid #e5e7eb; box-sizing: border-box; margin-bottom: 15px; font-size: 1rem; font-family: inherit; }
         
-        /* Checkbox & Partner Field Styling */
-        .checkbox-container { display: flex; align-items: center; justify-content: flex-start; gap: 10px; margin-bottom: 15px; text-align: left; font-weight: 600; font-size: 0.95rem; color: #374151; }
-        .checkbox-container input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: #000; }
-        .partner-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 15px 15px 5px 15px; margin-bottom: 15px; text-align: left; display: none; }
-        .partner-box label { font-size: 0.8rem; font-weight: 800; color: #6b7280; text-transform: uppercase; display: block; margin-bottom: 8px; }
-
         .slot-header { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; margin-bottom: 10px; }
         .slot-label { font-size: 0.75rem; font-weight: 800; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; }
         .clear-all { font-size: 0.75rem; font-weight: 700; color: #374151; background: #f3f4f6; border: none; padding: 4px 12px; border-radius: 20px; cursor: pointer; }
@@ -106,22 +100,8 @@
                 <input type="text" id="user-name" class="text-input" placeholder="Full Name">
                 <input type="email" id="user-email" class="text-input" placeholder="uark-email@uark.edu">
                 
-                <!-- Partner Option Container (Super9) -->
-                <div id="group-container">
-                    <div class="checkbox-container">
-                        <input type="checkbox" id="has-partner" onchange="togglePartnerFields()">
-                        <label for="has-partner">I am booking with a partner</label>
-                    </div>
-
-                    <div id="partner-box" class="partner-box">
-                        <label>Partner Information (Max 1 Partner)</label>
-                        <input type="text" id="partner-name" class="text-input" placeholder="Partner Full Name">
-                        <input type="email" id="partner-email" class="text-input" placeholder="partner-email@uark.edu">
-                    </div>
-                </div>
-
-                <!-- Group Members Option Container (SCARA) -->
-                <div id="scara-group-container" style="display: none; text-align: left; margin-bottom: 15px;">
+                <!-- Group Members Option Container (Used for both Super9 & SCARA) -->
+                <div id="group-container" style="text-align: left; margin-bottom: 15px;">
                     <label style="font-size: 0.8rem; font-weight: 800; color: #6b7280; text-transform: uppercase; display: block; margin-bottom: 8px;">
                         Other Group Members (Full Names & Emails)
                     </label>
@@ -159,7 +139,7 @@
         let selectedIndices = [];
 
         // Increment this version string whenever you make changes to the rules list!
-        const CURRENT_RULES_VERSION = "v2.6";
+        const CURRENT_RULES_VERSION = "v2.7";
 
         const super9MondayTimes = ["01:00 PM - 02:30 PM", "02:30 PM - 03:00 PM", "03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
         const super9StandardTimes = ["01:00 PM - 01:30 PM", "01:30 PM - 02:00 PM", "02:00 PM - 02:30 PM", "02:30 PM - 03:00 PM", "03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
@@ -170,7 +150,7 @@
         // Super9 Special Restriction for Friday, Oct 30 (1:00 PM - 3:00 PM in 30 min increments)
         const super9Oct30Times = ["01:00 PM - 01:30 PM", "01:30 PM - 02:00 PM", "02:00 PM - 02:30 PM", "02:30 PM - 03:00 PM"];
 
-        // SCARA Standard printing slots
+        // SCARA Standard printing slots (strict 1-hour increments)
         const scaraStandardTimes = ["01:00 PM - 02:00 PM", "02:00 PM - 03:00 PM", "03:00 PM - 04:00 PM"];
         
         // SCARA Wednesday Oct 28: Only Wood Prep/Mixing from 3:00 PM - 4:30 PM
@@ -213,11 +193,11 @@
 				"<strong>Because this is a shared space, the lab has a strict capacity limit and rules that coindise with that limit.</strong> Material preparation and printing can not happen at the same time. There may be a maximum of three students in the lab during material prep. Wood paste prep and clay prep also can not happen at the same time. There may be a maximum of five students in the lab specifically for printing and light computer work.",
 				"<strong>If you are not approved to be in the space or the lab has already reached capacity, you will be asked to leave.</strong> This includes inviting outside guests inside the lab. This is not allowed unless you have received prior approval from staff.",
                 "<strong>Printing sessions are available in 30-minute increments.</strong> Students may book 30 or 60 minutes per session. A 60-minute session must consist of two back-to-back 30-minute sessions.",
-                "<strong>Students may book printing sessions for themselves or for themselves and one partner.</strong> If booking with a partner, both students must be able to finish their prints and clean up by the end of the allotted time.",
+                "<strong>Students may book printing sessions for themselves or for their group.</strong> If booking with others, all group members must be able to finish their prints and clean up by the end of the allotted time.",
                 "<strong>Lunch, from 12:00–1:00 PM, is not bookable.</strong>",
                 "<strong>The lab will NOT be open if staff is not present.</strong>",
                 "<strong>Sign up no later than one hour before you plan to print.</strong>",
-                "<strong>Use the Manage/Cancel Existing Booking button at the bottom of the page to cancel or look up your appointment(s).</strong> Cancellations must be made at least one hour before your scheduled start time. Both partners are able to use this function and cancel or look up appointments. If someone cancels an appointment, it cancels it for everyone in the group. If you are unable to cancel an appointment in time, you must email staff at atcfablab@gmail.com to explain the reason. If you are generally absent, please try to email the lab if that absence coinsides with a scheduled appointment so we don't mistakenly mark you with a strike as missed.",
+                "<strong>Use the Manage/Cancel Existing Booking button at the bottom of the page to cancel or look up your appointment(s).</strong> Cancellations must be made at least one hour before your scheduled start time. All group members are able to use this function and cancel or look up appointments. If someone cancels an appointment, it cancels it for everyone in the group. If you are unable to cancel an appointment in time, you must email staff at atcfablab@gmail.com to explain the reason. If you are generally absent, please try to email the lab if that absence coinsides with a scheduled appointment so we don't mistakenly mark you with a strike as missed.",
 				"<strong>This lab maintains the same missed-appointment policies as the on-campus labs.</strong> Staff will email you after each missed appointment. If you miss three appointments, you will temporarily lose access (for 2 weeks) to the space and machines. Also, if you are more than 15 minutes late to your appointment, you will be marked with a strike as missed and you will lose that appointment time.",
                 "<strong>All work must stop by the end of your booked appointment time, INCLUDING CLEANUP, to help staff maintain the space and allow other students the same time to use the space.</strong> Assist with any additional cleaning that may be necessary as indicated by staff. If you are the last person or group using the space for the day/week, you will be required to help staff with the full shutdown of the space.",
                 "<strong>If any other issues arise, contact atcfablab@gmail.com and we will help you as best we can.</strong>"
@@ -273,11 +253,6 @@
         function closeRulesModal() {
             localStorage.setItem('fablab_rules_version', CURRENT_RULES_VERSION);
             document.getElementById('rules-modal').style.display = 'none';
-        }
-
-        function togglePartnerFields() {
-            const hasPartner = document.getElementById('has-partner').checked;
-            document.getElementById('partner-box').style.display = hasPartner ? 'block' : 'none';
         }
 
         function isWithinLockout(dateStr, timeStr) {
@@ -490,22 +465,7 @@
 
             if (selectedIndices.length > 0) {
                 document.getElementById('form-container').style.display = 'block';
-
-                const isClayPrepSelected = (printer === "Super9" && day === 1 && selectedIndices.includes(0));
-
-                if (printer === "SCARA") {
-                    document.getElementById('group-container').style.display = 'none';
-                    document.getElementById('scara-group-container').style.display = 'block';
-                } else {
-                    document.getElementById('scara-group-container').style.display = 'none';
-                    if (isClayPrepSelected) {
-                        document.getElementById('group-container').style.display = 'none';
-                        document.getElementById('has-partner').checked = false;
-                        document.getElementById('partner-box').style.display = 'none';
-                    } else {
-                        document.getElementById('group-container').style.display = 'block';
-                    }
-                }
+                document.getElementById('group-container').style.display = 'block';
             } else {
                 document.getElementById('form-container').style.display = 'none';
             }
@@ -515,8 +475,6 @@
             selectedIndices = []; 
             updateVisuals(); 
             document.getElementById('form-container').style.display = "none";
-            document.getElementById('has-partner').checked = false;
-            document.getElementById('partner-box').style.display = 'none';
             document.getElementById('group-members').value = '';
         }
 
@@ -542,11 +500,12 @@
                 return alert("⚠️ Access Restricted: You must use an official @uark.edu email address to complete a booking.");
             }
 
-            if (printer === "SCARA") {
-                if (!groupInput) {
-                    return alert("⚠️ SCARA Requirement: You must list all group members along with their @uark.edu emails.");
-                }
+            // Group validation for SCARA (optional check for Super9 if group members are entered)
+            if (printer === "SCARA" && !groupInput) {
+                return alert("⚠️ SCARA Requirement: You must list all group members along with their @uark.edu emails.");
+            }
 
+            if (groupInput) {
                 const members = groupInput.split(',').map(m => m.trim()).filter(m => m.length > 0);
 
                 const isGroupValid = members.every(member => {
@@ -635,7 +594,7 @@
                 
                 list.innerHTML = filtered.map(b => {
                     const locked = isWithinLockout(b.date, b.time.split(' - ')[0]);
-                    const partnerInfo = b.group ? `<br><small style="color:#6b7280;">Group/Partner: ${b.group}</small>` : '';
+                    const partnerInfo = b.group ? `<br><small style="color:#6b7280;">Group Members: ${b.group}</small>` : '';
                     
                     const dateObj = new Date(b.date + 'T00:00:00');
                     const isMonday = dateObj.getDay() === 1;
