@@ -177,6 +177,7 @@
         const rules = {
             "Super9": [
                 "<strong> Refresh the page before booking anything to ensure the website is up to date and that there are no new notices or warnings.",
+				"<strong>NOTICE FOR WEDNESDAY, OCT 28:</strong> The available time slot will include Clay Prep from 1:00 pm - 2:30 pm and a 30 minute print slot from 2:30 pm - 3:00 pm.",
 				"<strong>REMINDER: Be aware of the ATC Lab clothing policies.</strong> If you are not wearing the proper clothing, you will be denied access to the space for the day unless you can aquire the proper clothing.",
 				"<strong>Clay preparation is required every Monday from 1:00–2:30 PM.</strong> This task requires two individual students to sign up independently. Each student must book their own slot to help load clay for the week. If clay preparation is not necessary or available during a particular week, you will be notified beforehand via email or your professor.",
 				"<strong>A maximum of two students may sign up for the Clay Prep slot.</strong>",
@@ -298,6 +299,12 @@
         grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>SCARA is only available on Mon, Wed, and Fri. Please select a valid date.</div>";
         return;
     }
+
+			// Temporary override for this Wednesday only (Oct 28, 2026)
+if (printer === "Super9" && selectedDate === "2026-10-28") {
+    // Keep only slots from 1:00 PM to 3:00 PM (first 4 slots: indices 0 to 3)
+    times = times.slice(0, 4); 
+}
 
     // ... rest of your fetch and slot rendering code ...
 
