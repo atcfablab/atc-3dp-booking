@@ -48,7 +48,6 @@
             to { transform: rotate(360deg); }
         }
 
-        /* Rules Overlay Modal Styling */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -68,17 +67,8 @@
             text-align: center;
             box-shadow: 0 10px 25px rgba(0,0,0,0.2);
         }
-        .modal-content h3 {
-            margin-top: 0;
-            font-size: 1.4rem;
-            color: #111827;
-        }
-        .modal-content p {
-            font-size: 0.95rem;
-            color: #4b5563;
-            line-height: 1.5;
-            margin-bottom: 25px;
-        }
+        .modal-content h3 { margin-top: 0; font-size: 1.4rem; color: #111827; }
+        .modal-content p { font-size: 0.95rem; color: #4b5563; line-height: 1.5; margin-bottom: 25px; }
     </style>
 </head>
 <body>
@@ -100,7 +90,6 @@
                 <input type="text" id="user-name" class="text-input" placeholder="Full Name">
                 <input type="email" id="user-email" class="text-input" placeholder="uark-email@uark.edu">
                 
-                <!-- Group Members Option Container (Used for both Super9 & SCARA) -->
                 <div id="group-container" style="text-align: left; margin-bottom: 15px;">
                     <label style="font-size: 0.8rem; font-weight: 800; color: #6b7280; text-transform: uppercase; display: block; margin-bottom: 8px;">
                         Other Group Members (Full Names & Emails)
@@ -123,7 +112,6 @@
         </div>
     </div>
 
-    <!-- Rules Announcement Modal -->
     <div id="rules-modal" class="modal-overlay" style="display: none;">
         <div class="modal-content">
             <h3 id="modal-title">Notice</h3>
@@ -138,88 +126,48 @@
         const printer = params.get('printer') || "Super9";
         let selectedIndices = [];
 
-        // Increment this version string whenever you make changes to the rules list!
-        const CURRENT_RULES_VERSION = "v2.7";
+        const CURRENT_RULES_VERSION = "v2.8";
 
+        // Super9 Schedules
         const super9MondayTimes = ["01:00 PM - 02:30 PM", "02:30 PM - 03:00 PM", "03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
         const super9StandardTimes = ["11:00 AM - 11:30 AM", "11:30 AM - 12:00 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
         
-        // Super9 Single Unified Hybrid Block for Wednesday, Oct 28 (1:00 PM - 3:00 PM)
-        const super9Oct28Times = ["01:00 PM - 03:00 PM"]; 
-
-        // Super9 Special Restriction for Friday, Oct 30 (1:00 PM - 3:00 PM in 30 min increments)
-        const super9Oct30Times = ["01:00 PM - 01:30 PM", "01:30 PM - 02:00 PM", "02:00 PM - 02:30 PM", "02:30 PM - 03:00 PM"];
-
-        // SCARA Standard printing slots (strict 1-hour increments)
-        const scaraStandardTimes = ["01:00 PM - 02:00 PM", "02:00 PM - 03:00 PM", "03:00 PM - 04:00 PM"];
-        
-        // SCARA Wednesday Oct 28: Only Wood Prep/Mixing from 3:00 PM - 4:30 PM
-        const scaraOct28Times = ["03:00 PM - 04:30 PM"];
-
-        // SCARA Friday Oct 30: Printing slots (1-3pm) + Wood Prep slot (3-4:30pm)
-        const scaraOct30Times = ["01:00 PM - 02:00 PM", "02:00 PM - 03:00 PM", "03:00 PM - 04:30 PM"];
+        // SCARA Schedules
+        const scaraMondayTimes = ["09:00 AM - 11:00 AM", "11:00 AM - 12:00 PM"];
+        const scaraStandardTimes = ["09:00 AM - 11:00 AM", "11:00 AM - 12:00 PM", "01:00 PM - 03:00 PM", "03:30 PM - 04:30 PM"];
 
         function getTimesForDate(dateStr) {
             if (printer === "SCARA") {
-                if (dateStr === "2026-10-28") return scaraOct28Times;
-                if (dateStr === "2026-10-30") return scaraOct30Times;
-                return scaraStandardTimes;
+                if (!dateStr) return scaraStandardTimes;
+                const dateObj = new Date(dateStr + 'T00:00:00');
+                return (dateObj.getDay() === 1) ? scaraMondayTimes : scaraStandardTimes;
             }
             
             if (!dateStr) return super9StandardTimes;
-            
-            if (printer === "Super9" && dateStr === "2026-10-28") {
-                return super9Oct28Times;
-            }
-
-            if (printer === "Super9" && dateStr === "2026-10-30") {
-                return super9Oct30Times;
-            }
-
             const dateObj = new Date(dateStr + 'T00:00:00');
-            const day = dateObj.getDay(); 
-            return (day === 1) ? super9MondayTimes : super9StandardTimes;
+            return (dateObj.getDay() === 1) ? super9MondayTimes : super9StandardTimes;
         }
 
         const rules = {
             "Super9": [
                 "<strong>Refresh the page before booking anything to ensure the website is up to date and that there are no new notices or warnings.</strong>",
-				"<strong>NOTICE FOR WEDNESDAY, OCT 28:</strong> Super9 availability for this Wednesday is limited to a single unified 1:00 PM – 3:00 PM block for last-minute clay prep and extended print time.",
-                "<strong>NOTICE FOR FRIDAY, OCT 30:</strong> Super9 availability for this Friday is restricted to 1:00 PM – 3:00 PM.",
-				"<strong>REMINDER: Be aware of the ATC Lab clothing policies.</strong> If you are not wearing the proper clothing, you will be denied access to the space for the day unless you can aquire the proper clothing.",
-				"<strong>Clay preparation is required every Monday from 1:00–2:30 PM.</strong> This task requires two individual students to sign up independently. Each student must book their own slot to help load clay for the week. If clay preparation is not necessary or available during a particular week, you will be notified beforehand via email or your professor.",
-				"<strong>A maximum of two students may sign up for the Clay Prep slot.</strong>",
-				"<strong>The two students who sign up for Clay Prep will have the option to receive printing time immediately following the Clay Prep session.</strong> Each student may receive one 30-minute session. If either student declines, or if the sessions are not filled by these two students, the two 30-minute sessions will open to the rest of the class at 11:00 AM that Monday.",
-				"<strong>Because this is a shared space, the lab has a strict capacity limit and rules that coindise with that limit.</strong> Material preparation and printing can not happen at the same time. There may be a maximum of three students in the lab during material prep. Wood paste prep and clay prep also can not happen at the same time. There may be a maximum of five students in the lab specifically for printing and light computer work.",
-				"<strong>If you are not approved to be in the space or the lab has already reached capacity, you will be asked to leave.</strong> This includes inviting outside guests inside the lab. This is not allowed unless you have received prior approval from staff.",
-                "<strong>Printing sessions are available in 30-minute increments.</strong> Students may book 30 or 60 minutes per session. A 60-minute session must consist of two back-to-back 30-minute sessions.",
-                "<strong>Students may book printing sessions for themselves or for their group.</strong> If booking with others, all group members must be able to finish their prints and clean up by the end of the allotted time.",
+				"<strong>REMINDER: Be aware of the ATC Lab clothing policies.</strong> If you are not wearing the proper clothing, you will be denied access to the space for the day.",
+				"<strong>Clay preparation is required every Monday from 1:00–2:30 PM.</strong> This task requires two individual students to sign up independently. Each student must book their own slot to help load clay for the week.",
+				"<strong>Printing sessions are available in 30-minute increments (11:00 AM–12:00 PM and 3:30 PM–4:30 PM on Wed/Fri).</strong>",
+                "<strong>Students may book printing sessions for themselves or for their group.</strong>",
                 "<strong>Lunch, from 12:00–1:00 PM, is not bookable.</strong>",
-                "<strong>The lab will NOT be open if staff is not present.</strong>",
                 "<strong>Sign up no later than one hour before you plan to print.</strong>",
-                "<strong>Use the Manage/Cancel Existing Booking button at the bottom of the page to cancel or look up your appointment(s).</strong> Cancellations must be made at least one hour before your scheduled start time. All group members are able to use this function and cancel or look up appointments. If someone cancels an appointment, it cancels it for everyone in the group. If you are unable to cancel an appointment in time, you must email staff at atcfablab@gmail.com to explain the reason. If you are generally absent, please try to email the lab if that absence coinsides with a scheduled appointment so we don't mistakenly mark you with a strike as missed.",
-				"<strong>This lab maintains the same missed-appointment policies as the on-campus labs.</strong> Staff will email you after each missed appointment. If you miss three appointments, you will temporarily lose access (for 2 weeks) to the space and machines. Also, if you are more than 15 minutes late to your appointment, you will be marked with a strike as missed and you will lose that appointment time.",
-                "<strong>All work must stop by the end of your booked appointment time, INCLUDING CLEANUP, to help staff maintain the space and allow other students the same time to use the space.</strong> Assist with any additional cleaning that may be necessary as indicated by staff. If you are the last person or group using the space for the day/week, you will be required to help staff with the full shutdown of the space.",
-                "<strong>If any other issues arise, contact atcfablab@gmail.com and we will help you as best we can.</strong>"
+                "<strong>Use the Manage/Cancel Existing Booking button at the bottom of the page to cancel or look up your appointment(s).</strong>"
             ],
             "SCARA": [
                 "<strong>Refresh the page before booking anything to ensure the website is up to date and that there are no new notices or warnings.</strong>",
-                "<strong>NOTICE FOR WED, OCT 28:</strong> SCARA availability is dedicated exclusively to Wood Prep/Mixing from 3:00 PM – 4:30 PM.",
-                "<strong>NOTICE FOR FRI, OCT 30:</strong> SCARA availability includes 1-hour printing slots from 1:00 PM – 3:00 PM, followed by a Wood Prep/Mixing block from 3:00 PM – 4:30 PM.",
-                "<strong>REMINDER: Be aware of the ATC Lab clothing policies.</strong> If you are not wearing the proper clothing, you will be denied access to the lab spaces for the day unless you can acquire the proper clothing.",
-                "<strong>Until further notice, the bookings you are making are NOT for print time.</strong> It is time you will use to practice mixing and testing the wood paste.",
-				"<strong>Booking sessions are for groups only.</strong> Wood paste sessions are not available for individual bookers.",
-                "<strong>When booking a time slot, you must include the first and last names and uark emails of EACH of your group members along with your own.</strong>",
-				"<strong>Because this is a shared space, the lab has a strict capacity limit and rules that coincide with that limit.</strong> Material preparation and printing can not happen at the same time. There may be a maximum of three students in the lab during material prep. Wood paste prep and clay prep also can not happen at the same time. There may be a maximum of five students in the lab specifically for printing and light computer work.",
-				"<strong>If you are not approved to be in the space or the lab has already reached capacity, you will be asked to leave.</strong> This includes inviting outside guests inside the lab. This is not allowed unless you have received prior approval from staff.",
-				"<strong>Booking sessions are available in 1 hour increments.</strong> There are no consecutive sessions available for the wood paste at this time. This is to ensure all groups are allowed enough time during the week for at least one session per group per week. Coordinate with the other groups to ensure this happens.",
+                "<strong>REMINDER: Be aware of the ATC Lab clothing policies.</strong>",
+                "<strong>Wood Prep/Mixing and Printing time slots:</strong> Mondays have morning sessions (9:00 AM–12:00 PM). Wednesdays and Fridays include morning and afternoon wood prep and printing slots.",
+				"<strong>Booking sessions are for groups only.</strong> You must include group members' names and @uark.edu emails.",
+				"<strong>Booking sessions are available in 1 hour or 2 hour blocks depending on the slot type.</strong>",
                 "<strong>Lunch (12:00 - 1:00 PM) is not bookable.</strong>",
-				"<strong>The lab will NOT be open if staff is not present.</strong>",
-                "<strong>Sign up no later than one (1) hour before you plan to print.</strong>",
-                "<strong>Use the Manage/Cancel Existing Booking button at the bottom of the page to cancel or look up your appointment(s).</strong> Cancellations must be made at least one hour before your scheduled start time. All group members are able to use this function and cancel or look up appointments. If someone cancels an appointment, it cancels it for everyone in the group. If you are unable to cancel an appointment in time, you must email staff at atcfablab@gmail.com to explain the reason. If you are generally absent, please try to email the lab if that absence coincides with a scheduled appointment so we don't mistakenly mark you with a strike as missed.",
-				"<strong>This lab maintains the same missed-appointment policies as the on-campus labs.</strong> Staff will email you after each missed appointment. If you miss three appointments, you will temporarily lose access (for 2 weeks) to the space and machines. Also, if you are more than 15 minutes late to your appointment, you will be marked with a strike as missed, and you will lose that appointment time.",
-                "<strong>All work must stop by the end of your booked appointment time, INCLUDING CLEANUP, to help staff maintain the space and allow other students the same time to use the space.</strong> Assist with any additional cleaning that may be necessary as indicated by staff. If you are the last person or group using the space for the day/week, you will be required to help staff with the full shutdown of the space.",
-                "<strong>If any other issues arise, contact atcfablab@gmail.com & we will help you as best we can.</strong>"
+                "<strong>Sign up no later than one (1) hour before your session.</strong>",
+                "<strong>Use the Manage/Cancel Existing Booking button to cancel or look up your appointment(s).</strong>"
             ]
         };
 
@@ -239,13 +187,9 @@
             const title = document.getElementById('modal-title');
             const msg = document.getElementById('modal-message');
 
-            if (!savedVersion) {
-                title.innerText = "Welcome to ATC FabLab!";
-                msg.innerText = "Please read the 'Read Before Booking' section fully before proceeding with your reservation.";
-                modal.style.display = 'flex';
-            } else if (savedVersion !== CURRENT_RULES_VERSION) {
-                title.innerText = "Rules Updated!";
-                msg.innerText = "Our booking rules and policies have been updated. Please read the full guidelines carefully before reserving your slot.";
+            if (!savedVersion || savedVersion !== CURRENT_RULES_VERSION) {
+                title.innerText = "Notice & Updates";
+                msg.innerText = "Our schedule rules and policies have been updated. Please read the guidelines carefully before reserving your slot.";
                 modal.style.display = 'flex';
             }
         }
@@ -280,25 +224,8 @@
             document.getElementById('form-container').style.display = "none";
             selectedIndices = [];
 
-            // --- STAFF OVERRIDES (Holidays & Special Openings) ---
-            const specialOpenDates = [];   
-            const specialClosedDates = ["2026-10-16", "2026-10-19"]; 
-            
-            const isSpecialOpen = specialOpenDates.includes(selectedDate);
-            const isSpecialClosed = specialClosedDates.includes(selectedDate);
-
-            if (isSpecialClosed) {
-                grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>The lab is closed today for a holiday or other event.</div>";
-                return;
-            }
-
-            if (printer === "Super9" && ![1, 3, 5].includes(day) && !isSpecialOpen) {
-                grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>Super9 is only available on Mon, Wed, and Fri. Please select a valid date.</div>";
-                return;
-            }
-
-            if (printer === "SCARA" && ![1, 3, 5].includes(day) && !isSpecialOpen) {
-                grid.innerHTML = "<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>SCARA is only available on Mon, Wed, and Fri. Please select a valid date.</div>";
+            if (![1, 3, 5].includes(day)) {
+                grid.innerHTML = `<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>${printer} is only available on Mon, Wed, and Fri. Please select a valid date.</div>`;
                 return;
             }
 
@@ -346,8 +273,7 @@
                     const isClayPrep = (printer === "Super9" && isMonday && i === 0);
                     const isPriorityPrintingSlot = (printer === "Super9" && isMonday && (i === 1 || i === 2));
                     
-                    // Check if this slot is the SCARA Wood Prep slot on Wed (Oct 28, index 0) or Fri (Oct 30, index 2)
-                    const isScaraWoodPrep = (printer === "SCARA" && ((selectedDate === "2026-10-28" && i === 0) || (selectedDate === "2026-10-30" && i === 2)));
+                    const isScaraWoodPrep = (printer === "SCARA" && ((timeStr.includes("09:00 AM - 11:00 AM")) || (timeStr.includes("01:00 PM - 03:00 PM"))));
 
                     const maxCapacity = isClayPrep ? 2 : 1;
                     const isFull = bookingCount >= maxCapacity;
@@ -360,7 +286,7 @@
                     } else if (isScaraWoodPrep) {
                         const badge = document.createElement('span');
                         badge.className = 'clay-badge';
-                        badge.style.background = '#0284c7'; // Blue badge for Wood Prep
+                        badge.style.background = '#d97706';
                         badge.innerText = `Wood Prep / Mixing`;
                         slot.appendChild(badge);
                     }
@@ -452,48 +378,44 @@
         }
 
         function updateVisuals() {
-    const times = getTimesForDate(dateInput.value);
-    
-    // Parse with local time so the day index matches Central Time correctly
-    const dateObj = new Date(dateInput.value + 'T00:00:00');
-    const day = dateObj.getDay();
+            const times = getTimesForDate(dateInput.value);
+            const dateObj = new Date(dateInput.value + 'T00:00:00');
+            const day = dateObj.getDay();
 
-    times.forEach((_, i) => {
-        const slot = document.getElementById(`slot-${i}`);
-        if (slot && !slot.classList.contains('reserved') && !slot.classList.contains('locked')) {
-            slot.className = selectedIndices.includes(i) ? 'time-slot selected' : 'time-slot';
-        }
-    });
+            times.forEach((_, i) => {
+                const slot = document.getElementById(`slot-${i}`);
+                if (slot && !slot.classList.contains('reserved') && !slot.classList.contains('locked')) {
+                    slot.className = selectedIndices.includes(i) ? 'time-slot selected' : 'time-slot';
+                }
+            });
 
-    if (selectedIndices.length > 0) {
-        document.getElementById('form-container').style.display = 'block';
+            if (selectedIndices.length > 0) {
+                document.getElementById('form-container').style.display = 'block';
 
-        // Check if Super9 Monday Clay Prep (index 0) is among selected slots
-        const isClayPrepSelected = (printer === "Super9" && day === 1 && selectedIndices.includes(0));
-        const groupContainer = document.getElementById('group-container');
+                const isClayPrepSelected = (printer === "Super9" && day === 1 && selectedIndices.includes(0));
+                const groupContainer = document.getElementById('group-container');
 
-        if (groupContainer) {
-            if (isClayPrepSelected) {
-                groupContainer.style.display = 'none';
-                // Clear the group members input so it doesn't hold hidden values
-                const groupInput = document.getElementById('group-members');
-                if (groupInput) groupInput.value = '';
+                if (groupContainer) {
+                    if (isClayPrepSelected) {
+                        groupContainer.style.display = 'none';
+                        const groupInput = document.getElementById('group-members');
+                        if (groupInput) groupInput.value = '';
+                    } else {
+                        groupContainer.style.display = 'block';
+                    }
+                }
             } else {
-                groupContainer.style.display = 'block';
+                document.getElementById('form-container').style.display = 'none';
             }
         }
-    } else {
-        document.getElementById('form-container').style.display = 'none';
-    }
-}
 
         function clearAll() { 
-    selectedIndices = []; 
-    updateVisuals(); 
-    document.getElementById('form-container').style.display = "none";
-    const groupInput = document.getElementById('group-members');
-    if (groupInput) groupInput.value = '';
-}
+            selectedIndices = []; 
+            updateVisuals(); 
+            document.getElementById('form-container').style.display = "none";
+            const groupInput = document.getElementById('group-members');
+            if (groupInput) groupInput.value = '';
+        }
 
         function toggleView(view) {
             document.getElementById('booking-view').style.display = (view === 'booking') ? 'block' : 'none';
@@ -517,7 +439,6 @@
                 return alert("⚠️ Access Restricted: You must use an official @uark.edu email address to complete a booking.");
             }
 
-            // Group validation for SCARA (optional check for Super9 if group members are entered)
             if (printer === "SCARA" && !groupInput) {
                 return alert("⚠️ SCARA Requirement: You must list all group members along with their @uark.edu emails.");
             }
@@ -611,7 +532,7 @@
                 
                 list.innerHTML = filtered.map(b => {
                     const locked = isWithinLockout(b.date, b.time.split(' - ')[0]);
-                    const partnerInfo = b.group ? `<br><small style="color:#6b7280;">Group Members: ${b.group}</small>` : '';
+                    const groupInfoDisplay = b.group ? `<br><small style="color:#6b7280;">Group/Partners: ${b.group}</small>` : '';
                     
                     const dateObj = new Date(b.date + 'T00:00:00');
                     const isMonday = dateObj.getDay() === 1;
@@ -624,7 +545,7 @@
                     return `<div class="booking-item">
                         <div>
                             <strong>${b.printer}</strong>${slotTag}<br>
-                            ${b.date} @ ${b.time}${partnerInfo}
+                            ${b.date} @ ${b.time}${groupInfoDisplay}
                         </div>
                         <div>
                             ${locked ? '<span style="color:gray; font-size:0.7rem;">LOCKED</span>' : 
