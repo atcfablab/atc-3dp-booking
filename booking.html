@@ -452,31 +452,48 @@
         }
 
         function updateVisuals() {
-            const times = getTimesForDate(dateInput.value);
-            const dateObj = new Date(dateInput.value + 'T00:00:00');
-            const day = dateObj.getDay();
+    const times = getTimesForDate(dateInput.value);
+    
+    // Parse with local time so the day index matches Central Time correctly
+    const dateObj = new Date(dateInput.value + 'T00:00:00');
+    const day = dateObj.getDay();
 
-            times.forEach((_, i) => {
-                const slot = document.getElementById(`slot-${i}`);
-                if (slot && !slot.classList.contains('reserved') && !slot.classList.contains('locked')) {
-                    slot.className = selectedIndices.includes(i) ? 'time-slot selected' : 'time-slot';
-                }
-            });
+    times.forEach((_, i) => {
+        const slot = document.getElementById(`slot-${i}`);
+        if (slot && !slot.classList.contains('reserved') && !slot.classList.contains('locked')) {
+            slot.className = selectedIndices.includes(i) ? 'time-slot selected' : 'time-slot';
+        }
+    });
 
-            if (selectedIndices.length > 0) {
-                document.getElementById('form-container').style.display = 'block';
-                document.getElementById('group-container').style.display = 'block';
+    if (selectedIndices.length > 0) {
+        document.getElementById('form-container').style.display = 'block';
+
+        // Check if Super9 Monday Clay Prep (index 0) is among selected slots
+        const isClayPrepSelected = (printer === "Super9" && day === 1 && selectedIndices.includes(0));
+        const groupContainer = document.getElementById('group-container');
+
+        if (groupContainer) {
+            if (isClayPrepSelected) {
+                groupContainer.style.display = 'none';
+                // Clear the group members input so it doesn't hold hidden values
+                const groupInput = document.getElementById('group-members');
+                if (groupInput) groupInput.value = '';
             } else {
-                document.getElementById('form-container').style.display = 'none';
+                groupContainer.style.display = 'block';
             }
         }
+    } else {
+        document.getElementById('form-container').style.display = 'none';
+    }
+}
 
         function clearAll() { 
-            selectedIndices = []; 
-            updateVisuals(); 
-            document.getElementById('form-container').style.display = "none";
-            document.getElementById('group-members').value = '';
-        }
+    selectedIndices = []; 
+    updateVisuals(); 
+    document.getElementById('form-container').style.display = "none";
+    const groupInput = document.getElementById('group-members');
+    if (groupInput) groupInput.value = '';
+}
 
         function toggleView(view) {
             document.getElementById('booking-view').style.display = (view === 'booking') ? 'block' : 'none';
