@@ -474,26 +474,36 @@
         return alert("⚠️ Access Restricted: You must use an official @uark.edu email address to complete a booking.");
     }
 
-    // 4. Group Member Full Name & @uark.edu Email Check (For both Super9 & SCARA)
+    // 4. SCARA Requirement Check
+    if (printer === "SCARA" && !groupInput) {
+        return alert("⚠️ SCARA Requirement: You must list all group members along with their @uark.edu emails.");
+    }
+
+    // 5. Group Member Format & Comma Enforcement Check (For both Super9 & SCARA)
     if (groupInput.length > 0) {
         // Split entries strictly by comma
         const members = groupInput.split(',').map(m => m.trim()).filter(m => m.length > 0);
 
         const isGroupValid = members.every(member => {
-            // Check for @uark.edu email within the member entry
-            const emailMatch = member.match(/\b[A-Za-z0-9._%+-]+@uark\.edu\b/i);
-            if (!emailMatch) return false;
+            // Find ALL @uark.edu emails in this specific chunk
+            const emailMatches = member.match(/\b[A-Za-z0-9._%+-]+@uark\.edu\b/gi);
+            
+            // Each individual group member must have EXACTLY ONE email. 
+            // If they didn't use a comma between people, multiple emails will appear here and fail.
+            if (!emailMatches || emailMatches.length !== 1) return false;
 
-            // Remove the email portion to extract and check the full name
-            const nameOnly = member.replace(emailMatch[0], '').replace(/[()]/g, '').trim();
+            const singleEmail = emailMatches[0];
+
+            // Remove the email portion to check the full name
+            const nameOnly = member.replace(singleEmail, '').replace(/[()]/g, '').trim();
             const nameParts = nameOnly.split(/\s+/).filter(p => p.length > 0);
 
-            // Requires at least First and Last Name
+            // Requires at least First and Last Name (2 words)
             return nameParts.length >= 2;
         });
 
         if (!isGroupValid) {
-            return alert("⚠️ Group Requirement: Every group member must include a full First and Last name AND a valid @uark.edu email, separated by commas.\n\nExample:\nJohn Smith jsmith@uark.edu, Jane Doe jdoe@uark.edu");
+            return alert("⚠️ Group Requirement: Every group member must include a full First and Last name AND a valid @uark.edu email. Each person MUST be separated by a comma.\n\nExample:\nJohn Smith jsmith@uark.edu, Jane Doe jdoe@uark.edu");
         }
     }
 
@@ -509,7 +519,7 @@
         email, 
         printer, 
         date: dateInput.value, 
-        time: selectedIndices.map(i => (printer === "Super9" ? super9Times : scaraTimes)[i]).join(', '), 
+        time: selectedIndices.map(i => getTimesForDate(dateInput.value)[i]).join(', '), 
         group: groupInput
     };
 
