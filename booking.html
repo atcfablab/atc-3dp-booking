@@ -475,21 +475,26 @@
                 return alert("⚠️ SCARA Requirement: You must list all group members along with their @uark.edu emails.");
             }
 
-            if (groupInput) {
+            // Group Member Validation for Super 9 & SCARA
+            if (groupInput.length > 0) {
+                // Split by comma
                 const members = groupInput.split(',').map(m => m.trim()).filter(m => m.length > 0);
 
                 const isGroupValid = members.every(member => {
+                    // Check for @uark.edu email within the member entry
                     const emailMatch = member.match(/\b[A-Za-z0-9._%+-]+@uark\.edu\b/i);
                     if (!emailMatch) return false;
 
+                    // Remove the email portion to extract and check the full name
                     const nameOnly = member.replace(emailMatch[0], '').replace(/[()]/g, '').trim();
                     const nameParts = nameOnly.split(/\s+/).filter(p => p.length > 0);
 
+                    // Requires at least First and Last Name
                     return nameParts.length >= 2;
                 });
 
                 if (!isGroupValid) {
-                    return alert("⚠️ Group Requirement: Every group member must include a full First and Last name AND a valid @uark.edu email.\n\nExample:\nJane Doe jane@uark.edu, John Smith jsmith@uark.edu");
+                    return alert("⚠️ Group Requirement: Every group member must include a full First and Last name AND a valid @uark.edu email, separated by commas.\n\nExample:\nJane Doe jane@uark.edu, John Smith jsmith@uark.edu");
                 }
             }
 
