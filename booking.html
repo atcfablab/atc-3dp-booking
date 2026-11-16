@@ -128,6 +128,10 @@
 
         const CURRENT_RULES_VERSION = "v2.11";
 
+        // --- STAFF CLOSURES (Holidays, Sick Days, Special Events) ---
+        // Add dates in "YYYY-MM-DD" format separated by commas (e.g., ["2026-11-25", "2026-11-27"])
+        const specialClosedDates = [];
+
         // Super9 Schedules
         const super9MondayTimes = ["01:00 PM - 02:30 PM", "02:30 PM - 03:00 PM", "03:00 PM - 03:30 PM", "03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
         const super9StandardTimes = ["03:30 PM - 04:00 PM", "04:00 PM - 04:30 PM"];
@@ -164,21 +168,21 @@
         const rules = {
             "Super9": [
                 "<strong>Refresh the page before booking anything to ensure the website is up to date and that there are no new notices or warnings.</strong>",
-				"<strong>NOTICE FOR WEDNESDAY, OCT 28:</strong> Super9 availability for this Wednesday is limited to a single unified 1:00 PM – 3:00 PM block for last-minute clay prep and extended print time.",
+                "<strong>NOTICE FOR WEDNESDAY, OCT 28:</strong> Super9 availability for this Wednesday is limited to a single unified 1:00 PM – 3:00 PM block for last-minute clay prep and extended print time.",
                 "<strong>NOTICE FOR FRIDAY, OCT 30:</strong> Super9 availability for this Friday is restricted to 1:00 PM – 3:00 PM.",
-				"<strong>REMINDER: Be aware of the ATC Lab clothing policies.</strong> If you are not wearing the proper clothing, you will be denied access to the space for the day unless you can aquire the proper clothing.",
-				"<strong>Clay preparation is required every Monday from 1:00–2:30 PM.</strong> This task requires two individual students to sign up independently. Each student must book their own slot to help load clay for the week. If clay preparation is not necessary or available during a particular week, you will be notified beforehand via email or your professor.",
-				"<strong>A maximum of two students may sign up for the Clay Prep slot.</strong>",
-				"<strong>The two students who sign up for Clay Prep will have the option to receive printing time immediately following the Clay Prep session.</strong> Each student may receive one 30-minute session. If either student declines, or if the sessions are not filled by these two students, the two 30-minute sessions will open to the rest of the class at 11:00 AM that Monday.",
-				"<strong>Because this is a shared space, the lab has a strict capacity limit and rules that coindise with that limit.</strong> Material preparation and printing can not happen at the same time. There may be a maximum of three students in the lab during material prep. Wood paste prep and clay prep also can not happen at the same time. There may be a maximum of five students in the lab specifically for printing and light computer work.",
-				"<strong>If you are not approved to be in the space or the lab has already reached capacity, you will be asked to leave.</strong> This includes inviting outside guests inside the lab. This is not allowed unless you have received prior approval from staff.",
+                "<strong>REMINDER: Be aware of the ATC Lab clothing policies.</strong> If you are not wearing the proper clothing, you will be denied access to the space for the day unless you can aquire the proper clothing.",
+                "<strong>Clay preparation is required every Monday from 1:00–2:30 PM.</strong> This task requires two individual students to sign up independently. Each student must book their own slot to help load clay for the week. If clay preparation is not necessary or available during a particular week, you will be notified beforehand via email or your professor.",
+                "<strong>A maximum of two students may sign up for the Clay Prep slot.</strong>",
+                "<strong>The two students who sign up for Clay Prep will have the option to receive printing time immediately following the Clay Prep session.</strong> Each student may receive one 30-minute session. If either student declines, or if the sessions are not filled by these two students, the two 30-minute sessions will open to the rest of the class at 11:00 AM that Monday.",
+                "<strong>Because this is a shared space, the lab has a strict capacity limit and rules that coindise with that limit.</strong> Material preparation and printing can not happen at the same time. There may be a maximum of three students in the lab during material prep. Wood paste prep and clay prep also can not happen at the same time. There may be a maximum of five students in the lab specifically for printing and light computer work.",
+                "<strong>If you are not approved to be in the space or the lab has already reached capacity, you will be asked to leave.</strong> This includes inviting outside guests inside the lab. This is not allowed unless you have received prior approval from staff.",
                 "<strong>Printing sessions are available in 30-minute increments.</strong> Students may book 30 or 60 minutes per session. A 60-minute session must consist of two back-to-back 30-minute sessions.",
                 "<strong>Students may book printing sessions for themselves or for their group.</strong> If booking with others, all group members must be able to finish their prints and clean up by the end of the allotted time.",
                 "<strong>Lunch, from 12:00–1:00 PM, is not bookable.</strong>",
                 "<strong>The lab will NOT be open if staff is not present.</strong>",
                 "<strong>Sign up no later than one hour before you plan to print.</strong>",
                 "<strong>Use the Manage/Cancel Existing Booking button at the bottom of the page to cancel or look up your appointment(s).</strong> Cancellations must be made at least one hour before your scheduled start time. All group members are able to use this function and cancel or look up appointments. If someone cancels an appointment, it cancels it for everyone in the group. If you are unable to cancel an appointment in time, you must email staff at atcfablab@gmail.com to explain the reason. If you are generally absent, please try to email the lab if that absence coinsides with a scheduled appointment so we don't mistakenly mark you with a strike as missed.",
-				"<strong>This lab maintains the same missed-appointment policies as the on-campus labs.</strong> Staff will email you after each missed appointment. If you miss three appointments, you will temporarily lose access (for 2 weeks) to the space and machines. Also, if you are more than 15 minutes late to your appointment, you will be marked with a strike as missed and you will lose that appointment time.",
+                "<strong>This lab maintains the same missed-appointment policies as the on-campus labs.</strong> Staff will email you after each missed appointment. If you miss three appointments, you will temporarily lose access (for 2 weeks) to the space and machines. Also, if you are more than 15 minutes late to your appointment, you will be marked with a strike as missed and you will lose that appointment time.",
                 "<strong>All work must stop by the end of your booked appointment time, INCLUDING CLEANUP, to help staff maintain the space and allow other students the same time to use the space.</strong> Assist with any additional cleaning that may be necessary as indicated by staff. If you are the last person or group using the space for the day/week, you will be required to help staff with the full shutdown of the space.",
                 "<strong>If any other issues arise, contact atcfablab@gmail.com and we will help you as best we can.</strong>"
             ],
@@ -188,16 +192,16 @@
                 "<strong>NOTICE FOR FRI, OCT 30:</strong> SCARA availability includes 1-hour test printing or syringe test slots from 1:00 PM – 3:00 PM, followed by a Wood Prep/Mixing block from 3:00 PM – 4:30 PM.",
                 "<strong>REMINDER: Be aware of the ATC Lab clothing policies.</strong> If you are not wearing the proper clothing, you will be denied access to the lab spaces for the day unless you can acquire the proper clothing.",
                 "<strong>Pay attention to what type of appointment you are booking.</strong> One booking type is specifically for Wood Prep/Mixing and tests. The other time slot type is only for printing. Booking the wrong appointment type will result in your session being marked as missed and a strike being added to your account. Please double-check your selection before submitting.",
-				"<strong>Booking sessions are for groups only.</strong> Wood paste sessions are not available for individual bookers.",
+                "<strong>Booking sessions are for groups only.</strong> Wood paste sessions are not available for individual bookers.",
                 "<strong>When booking a time slot, you must include the first and last names and uark emails of EACH of your group members along with your own.</strong>",
-				"<strong>Because this is a shared space, the lab has a strict capacity limit and rules that coincide with that limit.</strong> Material preparation and printing can not happen at the same time. There may be a maximum of three students in the lab during material prep. Wood paste prep and clay prep also can not happen at the same time. There may be a maximum of five students in the lab specifically for printing and light computer work.",
-				"<strong>If you are not approved to be in the space or the lab has already reached capacity, you will be asked to leave.</strong> This includes inviting outside guests inside the lab. This is not allowed unless you have received prior approval from staff.",
-				"<strong>Booking sessions are available in 1 hour increments.</strong> There are no consecutive sessions available for the wood paste at this time. This is to ensure all groups are allowed enough time during the week for at least one session per group per week. Coordinate with the other groups to ensure this happens.",
+                "<strong>Because this is a shared space, the lab has a strict capacity limit and rules that coincide with that limit.</strong> Material preparation and printing can not happen at the same time. There may be a maximum of three students in the lab during material prep. Wood paste prep and clay prep also can not happen at the same time. There may be a maximum of five students in the lab specifically for printing and light computer work.",
+                "<strong>If you are not approved to be in the space or the lab has already reached capacity, you will be asked to leave.</strong> This includes inviting outside guests inside the lab. This is not allowed unless you have received prior approval from staff.",
+                "<strong>Booking sessions are available in 1 hour increments.</strong> There are no consecutive sessions available for the wood paste at this time. This is to ensure all groups are allowed enough time during the week for at least one session per group per week. Coordinate with the other groups to ensure this happens.",
                 "<strong>Lunch (12:00 - 1:00 PM) is not bookable.</strong>",
-				"<strong>The lab will NOT be open if staff is not present.</strong>",
+                "<strong>The lab will NOT be open if staff is not present.</strong>",
                 "<strong>Sign up no later than one (1) hour before you plan to print.</strong>",
                 "<strong>Use the Manage/Cancel Existing Booking button at the bottom of the page to cancel or look up your appointment(s).</strong> Cancellations must be made at least one hour before your scheduled start time. All group members are able to use this function and cancel or look up appointments. If someone cancels an appointment, it cancels it for everyone in the group. If you are unable to cancel an appointment in time, you must email staff at atcfablab@gmail.com to explain the reason. If you are generally absent, please try to email the lab if that absence coincides with a scheduled appointment so we don't mistakenly mark you with a strike as missed.",
-				"<strong>This lab maintains the same missed-appointment policies as the on-campus labs.</strong> Staff will email you after each missed appointment. If you miss three appointments, you will temporarily lose access (for 2 weeks) to the space and machines. Also, if you are more than 15 minutes late to your appointment, you will be marked with a strike as missed, and you will lose that appointment time.",
+                "<strong>This lab maintains the same missed-appointment policies as the on-campus labs.</strong> Staff will email you after each missed appointment. If you miss three appointments, you will temporarily lose access (for 2 weeks) to the space and machines. Also, if you are more than 15 minutes late to your appointment, you will be marked with a strike as missed, and you will lose that appointment time.",
                 "<strong>All work must stop by the end of your booked appointment time, INCLUDING CLEANUP, to help staff maintain the space and allow other students the same time to use the space.</strong> Assist with any additional cleaning that may be necessary as indicated by staff. If you are the last person or group using the space for the day/week, you will be required to help staff with the full shutdown of the space.",
                 "<strong>If any other issues arise, contact atcfablab@gmail.com & we will help you as best we can.</strong>"
             ]
@@ -256,6 +260,13 @@
             document.getElementById('form-container').style.display = "none";
             selectedIndices = [];
 
+            // 1. Check for Holiday / Emergency Staff Closure (Blocks BOTH Super9 and SCARA)
+            if (specialClosedDates.includes(selectedDate)) {
+                grid.innerHTML = `<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>The lab is closed on this date due to a holiday or staff unavailability.</div>`;
+                return;
+            }
+
+            // 2. Standard Mon / Wed / Fri Check
             if (![1, 3, 5].includes(day)) {
                 grid.innerHTML = `<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>${printer} is only available on Mon, Wed, and Fri. Please select a valid date.</div>`;
                 return;
@@ -455,99 +466,99 @@
         }
 
         async function handleConfirm() {
-    const name = document.getElementById('user-name').value.trim();
-    const email = document.getElementById('user-email').value.trim().toLowerCase();
-    const groupInput = document.getElementById('group-members') ? document.getElementById('group-members').value.trim() : "";
-    const btn = document.getElementById('submit-btn'); 
+            const name = document.getElementById('user-name').value.trim();
+            const email = document.getElementById('user-email').value.trim().toLowerCase();
+            const groupInput = document.getElementById('group-members') ? document.getElementById('group-members').value.trim() : "";
+            const btn = document.getElementById('submit-btn'); 
 
-    // 1. Basic Required Field Check
-    if (!name || !email) return alert("Please fill in both your full name and email.");
+            // 1. Basic Required Field Check
+            if (!name || !email) return alert("Please fill in both your full name and email.");
 
-    // 2. Main User Full Name Check (Requires at least First and Last Name)
-    const mainNameParts = name.split(/\s+/).filter(part => part.length > 0);
-    if (mainNameParts.length < 2) {
-        return alert("Please enter your full first and last name (e.g., Jane Doe).");
-    }
+            // 2. Main User Full Name Check (Requires at least First and Last Name)
+            const mainNameParts = name.split(/\s+/).filter(part => part.length > 0);
+            if (mainNameParts.length < 2) {
+                return alert("Please enter your full first and last name (e.g., Jane Doe).");
+            }
 
-    // 3. Main User @uark.edu Email Domain Check
-    if (!email.endsWith('@uark.edu')) {
-        return alert("⚠️ Access Restricted: You must use an official @uark.edu email address to complete a booking.");
-    }
+            // 3. Main User @uark.edu Email Domain Check
+            if (!email.endsWith('@uark.edu')) {
+                return alert("⚠️ Access Restricted: You must use an official @uark.edu email address to complete a booking.");
+            }
 
-    // 4. SCARA Requirement Check
-    if (printer === "SCARA" && !groupInput) {
-        return alert("⚠️ SCARA Requirement: You must list all group members along with their @uark.edu emails.");
-    }
+            // 4. SCARA Requirement Check
+            if (printer === "SCARA" && !groupInput) {
+                return alert("⚠️ SCARA Requirement: You must list all group members along with their @uark.edu emails.");
+            }
 
-    // 5. Group Member Format & Comma Enforcement Check (For both Super9 & SCARA)
-    if (groupInput.length > 0) {
-        // Split entries strictly by comma
-        const members = groupInput.split(',').map(m => m.trim()).filter(m => m.length > 0);
+            // 5. Group Member Format & Comma Enforcement Check (For both Super9 & SCARA)
+            if (groupInput.length > 0) {
+                // Split entries strictly by comma
+                const members = groupInput.split(',').map(m => m.trim()).filter(m => m.length > 0);
 
-        const isGroupValid = members.every(member => {
-            // Find ALL @uark.edu emails in this specific chunk
-            const emailMatches = member.match(/\b[A-Za-z0-9._%+-]+@uark\.edu\b/gi);
-            
-            // Each individual group member must have EXACTLY ONE email. 
-            // If they didn't use a comma between people, multiple emails will appear here and fail.
-            if (!emailMatches || emailMatches.length !== 1) return false;
+                const isGroupValid = members.every(member => {
+                    // Find ALL @uark.edu emails in this specific chunk
+                    const emailMatches = member.match(/\b[A-Za-z0-9._%+-]+@uark\.edu\b/gi);
+                    
+                    // Each individual group member must have EXACTLY ONE email. 
+                    // If they didn't use a comma between people, multiple emails will appear here and fail.
+                    if (!emailMatches || emailMatches.length !== 1) return false;
 
-            const singleEmail = emailMatches[0];
+                    const singleEmail = emailMatches[0];
 
-            // Remove the email portion to check the full name
-            const nameOnly = member.replace(singleEmail, '').replace(/[()]/g, '').trim();
-            const nameParts = nameOnly.split(/\s+/).filter(p => p.length > 0);
+                    // Remove the email portion to check the full name
+                    const nameOnly = member.replace(singleEmail, '').replace(/[()]/g, '').trim();
+                    const nameParts = nameOnly.split(/\s+/).filter(p => p.length > 0);
 
-            // Requires at least First and Last Name (2 words)
-            return nameParts.length >= 2;
-        });
+                    // Requires at least First and Last Name (2 words)
+                    return nameParts.length >= 2;
+                });
 
-        if (!isGroupValid) {
-            return alert("⚠️ Group Requirement: Every group member must include a full First and Last name AND a valid @uark.edu email. Each person MUST be separated by a comma.\n\nExample:\nJohn Smith jsmith@uark.edu, Jane Doe jdoe@uark.edu");
+                if (!isGroupValid) {
+                    return alert("⚠️ Group Requirement: Every group member must include a full First and Last name AND a valid @uark.edu email. Each person MUST be separated by a comma.\n\nExample:\nJohn Smith jsmith@uark.edu, Jane Doe jdoe@uark.edu");
+                }
+            }
+
+            // --- PROCEED WITH SUBMISSION ---
+            btn.disabled = true; 
+            btn.style.opacity = "0.7";
+            btn.style.cursor = "not-allowed";
+            btn.innerHTML = `<span class="spinner"></span> Verifying Reservation...`;
+
+            const payload = { 
+                action: 'book', 
+                name, 
+                email, 
+                printer, 
+                date: dateInput.value, 
+                time: selectedIndices.map(i => getTimesForDate(dateInput.value)[i]).join(', '), 
+                group: groupInput
+            };
+
+            try {
+                const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+                const result = await response.json(); 
+
+                if (result.status === "success") {
+                    alert("Reservation Confirmed!");
+                    window.location.href = "index.html";
+                } else {
+                    alert("⚠️ BOOKING STOPPED: " + result.message);
+                    
+                    btn.disabled = false;
+                    btn.style.opacity = "1";
+                    btn.style.cursor = "pointer";
+                    btn.innerText = "Complete Reservation";
+                    renderGrid();
+                }
+            } catch (e) { 
+                console.error("Fetch Error:", e);
+                alert("Error submitting booking. Please refresh and try again."); 
+                btn.disabled = false;
+                btn.style.opacity = "1";
+                btn.style.cursor = "pointer";
+                btn.innerText = "Complete Reservation";
+            }
         }
-    }
-
-    // --- PROCEED WITH SUBMISSION ---
-    btn.disabled = true; 
-    btn.style.opacity = "0.7";
-    btn.style.cursor = "not-allowed";
-    btn.innerHTML = `<span class="spinner"></span> Verifying Reservation...`;
-
-    const payload = { 
-        action: 'book', 
-        name, 
-        email, 
-        printer, 
-        date: dateInput.value, 
-        time: selectedIndices.map(i => getTimesForDate(dateInput.value)[i]).join(', '), 
-        group: groupInput
-    };
-
-    try {
-        const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-        const result = await response.json(); 
-
-        if (result.status === "success") {
-            alert("Reservation Confirmed!");
-            window.location.href = "index.html";
-        } else {
-            alert("⚠️ BOOKING STOPPED: " + result.message);
-            
-            btn.disabled = false;
-            btn.style.opacity = "1";
-            btn.style.cursor = "pointer";
-            btn.innerText = "Complete Reservation";
-            renderGrid();
-        }
-    } catch (e) { 
-        console.error("Fetch Error:", e);
-        alert("Error submitting booking. Please refresh and try again."); 
-        btn.disabled = false;
-        btn.style.opacity = "1";
-        btn.style.cursor = "pointer";
-        btn.innerText = "Complete Reservation";
-    }
-}
 
         async function lookupBookings() {
             const n = document.getElementById('lookup-name').value.trim().toLowerCase();
