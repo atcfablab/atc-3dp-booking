@@ -126,7 +126,7 @@
         const printer = params.get('printer') || "Super9";
         let selectedIndices = [];
 
-        const CURRENT_RULES_VERSION = "v2.11";
+        const CURRENT_RULES_VERSION = "v2.12";
 
         // --- STAFF CLOSURES (Holidays, Sick Days, Special Events) ---
         // Add dates in "YYYY-MM-DD" format separated by commas (e.g., ["2026-11-25", "2026-11-27"])
@@ -139,26 +139,30 @@
         // Super9 Hybrid Overrides for Oct 28 & Oct 30
         const super9Oct28Times = ["01:00 PM - 03:00 PM"]; 
         const super9Oct30Times = ["01:00 PM - 01:30 PM", "01:30 PM - 02:00 PM", "02:00 PM - 02:30 PM", "02:30 PM - 03:00 PM"];
+		const super9Nov24Times = ["09:00 AM - 10:00 AM", "10:00 AM - 11:00 AM", "11:00 AM - 12:00 PM", "01:00 PM - 02:00 PM", "02:00 PM - 03:00 PM", "03:00 PM - 04:00 PM"];
 
         // SCARA Schedules
         const scaraMondayTimes = ["09:00 AM - 11:00 AM", "11:00 AM - 12:00 PM"];
         const scaraStandardTimes = ["09:00 AM - 11:00 AM", "11:00 AM - 12:00 PM", "01:00 PM - 03:00 PM", "03:30 PM - 04:30 PM"];
         
-        // SCARA Hybrid Overrides for Oct 28 & Oct 30
+        // SCARA Hybrid Overrides for Oct 28 & Oct 30; Nov 24
         const scaraOct28Times = ["03:00 PM - 04:30 PM"];
         const scaraOct30Times = ["01:00 PM - 02:00 PM", "02:00 PM - 03:00 PM", "03:00 PM - 04:30 PM"];
+		const scaraNov24Times = ["09:00 AM - 10:00 AM", "10:00 AM - 11:00 AM", "11:00 AM - 12:00 PM", "01:00 PM - 02:00 PM", "02:00 PM - 03:00 PM", "03:00 PM - 04:00 PM"];
 
         function getTimesForDate(dateStr) {
             if (printer === "SCARA") {
                 if (dateStr === "2026-10-28") return scaraOct28Times;
                 if (dateStr === "2026-10-30") return scaraOct30Times;
+                if (dateStr === "2026-11-24") return scaraNov24Times;
                 if (!dateStr) return scaraStandardTimes;
                 const dateObj = new Date(dateStr + 'T00:00:00');
                 return (dateObj.getDay() === 1) ? scaraMondayTimes : scaraStandardTimes;
             }
             
             if (printer === "Super9" && dateStr === "2026-10-28") return super9Oct28Times;
-            if (printer === "Super9" && dateStr === "2026-10-30") return super9Oct30Times;
+			if (printer === "Super9" && dateStr === "2026-10-30") return super9Oct30Times;
+			if (printer === "Super9" && dateStr === "2026-11-24") return super9Nov24Times;
 
             if (!dateStr) return super9StandardTimes;
             const dateObj = new Date(dateStr + 'T00:00:00');
@@ -168,6 +172,7 @@
         const rules = {
             "Super9": [
                 "<strong>Refresh the page before booking anything to ensure the website is up to date and that there are no new notices or warnings.</strong>",
+				"<strong>NOTICE FOR TUESDAY, NOV 24:</strong> Super9 availability on Tuesday, Nov 24 consists of 1-hour printing sessions from 9:00 AM – 12:00 PM and 1:00 PM – 4:00 PM.",
                 "<strong>NOTICE FOR WEDNESDAY, OCT 28:</strong> Super9 availability for this Wednesday is limited to a single unified 1:00 PM – 3:00 PM block for last-minute clay prep and extended print time.",
                 "<strong>NOTICE FOR FRIDAY, OCT 30:</strong> Super9 availability for this Friday is restricted to 1:00 PM – 3:00 PM.",
                 "<strong>REMINDER: Be aware of the ATC Lab clothing policies.</strong> If you are not wearing the proper clothing, you will be denied access to the space for the day unless you can aquire the proper clothing.",
@@ -188,6 +193,7 @@
             ],
             "SCARA": [
                 "<strong>Refresh the page before booking anything to ensure the website is up to date and that there are no new notices or warnings.</strong>",
+				"<strong>NOTICE FOR TUESDAY, NOV 24:</strong> SCARA availability on Tuesday, Nov 24 consists exclusively of 1-hour printing sessions (9:00 AM – 12:00 PM and 1:00 PM – 4:00 PM), strictly limited to one slot per group. If the class has discussed and not all groups need a printing appointment, speak with me directly or email atcfablab@gmail.com and I can manually add a second appointment in addition to your existing one if a slot is available.",
                 "<strong>NOTICE FOR WED, OCT 28:</strong> SCARA availability is dedicated exclusively to Wood Prep/Mixing from 3:00 PM – 4:30 PM.",
                 "<strong>NOTICE FOR FRI, OCT 30:</strong> SCARA availability includes 1-hour test printing or syringe test slots from 1:00 PM – 3:00 PM, followed by a Wood Prep/Mixing block from 3:00 PM – 4:30 PM.",
                 "<strong>REMINDER: Be aware of the ATC Lab clothing policies.</strong> If you are not wearing the proper clothing, you will be denied access to the lab spaces for the day unless you can acquire the proper clothing.",
@@ -266,11 +272,12 @@
                 return;
             }
 
-            // 2. Standard Mon / Wed / Fri Check
-            if (![1, 3, 5].includes(day)) {
-                grid.innerHTML = `<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>${printer} is only available on Mon, Wed, and Fri. Please select a valid date.</div>`;
-                return;
-            }
+            // 2. Standard Mon / Wed / Fri Check (with Tuesday Nov 24 exception)
+			const isNov24Override = (selectedDate === "2026-11-24");
+			if (![1, 3, 5].includes(day) && !isNov24Override) {
+				grid.innerHTML = `<div style='grid-column: 1/-1; color:#ef4444; border:1px dashed #ef4444; padding:20px; border-radius:12px; font-weight:700;'>${printer} is only available on Mon, Wed, and Fri. Please select a valid date.</div>`;
+				return;
+			}
 
             try {
                 const response = await fetch(`${SCRIPT_URL}?action=getInitialData&printer=${printer}&date=${selectedDate}`);
