@@ -365,7 +365,7 @@
         function handleSelection(idx, day) {
             const isClayPrep = (printer === "Super9" && day === 1 && idx === 0);
 
-            if (printer === "SCARA") {
+            if (printer === "SCARA" || dateInput.value === "2026-11-24") {
                 if (selectedIndices.includes(idx)) {
                     selectedIndices = [];
                 } else {
